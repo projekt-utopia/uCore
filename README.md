@@ -1,4 +1,4 @@
-<h1 align="center">Welcome to µtoipa Core 👋</h1>
+<h1 align="center">Welcome to µtopia Core 👋</h1>
 <p>
   <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000&style=for-the-badge" /> <!-- To be replaced with crates.io verion -->
   <!--<a href="wip" target="_blank">
