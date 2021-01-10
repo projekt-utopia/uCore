@@ -4,7 +4,7 @@
   <!--<a href="wip" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
   </a>-->
-  <a href="shrug" target="_blank">
+  <a href="https://github.com/projekt-utopia/uCore/blob/master/utopia-core/LICENSE.md" target="_blank">
     <img alt="License: AGPL--3.0" src="https://img.shields.io/badge/License-AGPL--3.0-blueviolet.svg?style=for-the-badge" />
   </a>
 </p>
@@ -42,7 +42,7 @@ cargo test
 
 ## 🤝 Contributing
 
-Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](shrug).<!-- You can also take a look at the [contributing guide](shrug). -->
+Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](https://github.com/projekt-utopia/uCore/issues).<!-- You can also take a look at the [contributing guide](shrug). -->
 
 ## Show your support
 
@@ -51,8 +51,8 @@ Give a ⭐️ if this project helped you!
 ## 📝 License
 
 Copyright © 2021 [sp1rit](https://github.com/sp1ritCS).<br />
-µtopia-core is [AGPL--3.0](shrug) licensed.
-µtopia-module is [MPL--3.0](shrug) licensed. This might change in the future.
+[µtopia-core](https://github.com/projekt-utopia/uCore/tree/master/utopia-core) is [AGPL-3.0](https://github.com/projekt-utopia/uCore/blob/master/utopia-core/LICENSE.md) licensed.
+[µtopia-module](https://github.com/projekt-utopia/uCore/tree/master/utopia-module) is [MPL-2.0](https://github.com/projekt-utopia/uCore/blob/master/utopia-module/LICENSE.md) licensed. This might change in the future.
 
 ***
 _This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)_

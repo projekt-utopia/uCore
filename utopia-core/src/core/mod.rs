@@ -12,7 +12,7 @@ impl Core {
     pub fn new() -> failure::Fallible<Core> {
         let mut mod_mgr = modules::ModuleManager::new();
         unsafe {
-        match mod_mgr.load_module(&std::ffi::OsStr::new("../../µtopia-sample_module/target/debug/libutopia-sample_module.so")) {
+        match mod_mgr.load_module(&std::ffi::OsStr::new("../../utopia-sample_module/target/debug/libutopia-sample_module.so")) {
             Ok(()) => {},
             Err(e) => eprintln!("Error loading module: {}", e)
         }
