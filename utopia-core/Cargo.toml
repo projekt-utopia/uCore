@@ -1,0 +1,22 @@
+[package]
+name = "utopia-core"
+version = "0.0.1"
+authors = ["sp1rit <sp1rit@disroot.org>"]
+edition = "2018"
+license = "AGPL-3.0-or-later"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+utopia-module = { path = "../utopia-module" }
+failure = "0.1"
+libc = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.8"
+shellexpand = "2.1"
+libloading = "0.6"
+#tokio = {version = "1.0", features=["time", "macros", "io-driver", "rt-core", "rt-util", "rt-threaded", "stream", "sync"]}
+tokio = {version = "1.0", features=["rt", "rt-multi-thread", "sync", "macros", "time"]}
+#once_cell = "1.5"
+futures = "0.3"
+futures-cpupool = "0.1"

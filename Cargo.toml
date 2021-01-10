@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+	"utopia-core",
+	"utopia-module"
+]
