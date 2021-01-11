@@ -7,6 +7,7 @@ pub struct EventLoop<'a> {
     receivers: SelectAll<&'a mut mpsc::UnboundedReceiver<props::ModuleCommands>>
 }
 
+// TODO: The usage of lifetimes seems very wierd. Please check if this is accepeble and if it is give it a more constructive name :)
 impl <'a> EventLoop<'a> {
     pub fn new(thread_futures: FuturesUnordered<JoinHandle<(&'static str, Result<props::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>)>>, channels: std::collections::hash_map::ValuesMut<'a, &'static str, crate::modules::modules::IModule>) -> Self {
         EventLoop {
