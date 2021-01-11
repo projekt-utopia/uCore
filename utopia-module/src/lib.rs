@@ -15,7 +15,7 @@ pub trait Module: Any + Send + Sync {
 
 #[macro_export]
 macro_rules! spawn_async_runtime {
-    ($id:expr, $function:expr) => {
+    ($id:expr, $function:stmt) => {
         let rt = utopia_module::Runtime::new().unwrap();
         return ($id, rt.block_on(async { $function }));
     }
