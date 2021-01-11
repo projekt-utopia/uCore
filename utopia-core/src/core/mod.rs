@@ -12,7 +12,7 @@ impl Core {
     pub fn new() -> failure::Fallible<Core> {
         let mut mod_mgr = modules::ModuleManager::new();
         unsafe {
-        match mod_mgr.load_module(&std::ffi::OsStr::new("../../utopia-sample_module/target/debug/libutopia-sample_module.so")) {
+        match mod_mgr.load_module(&std::ffi::OsStr::new("../utopia-sample-module/target/debug/libsample_mod.so")) {
             Ok(()) => {},
             Err(e) => eprintln!("Error loading module: {}", e)
         }
@@ -32,7 +32,7 @@ impl Core {
             {
                 let module = module.module.clone();
                 futures.push(tokio::spawn(async move {
-                    module.thread(mod_send, core_recv);
+                    module.thread(mod_send, core_recv)
                 }));
             }
         }
@@ -49,8 +49,16 @@ impl Core {
                         None => eprintln!("Communication channel of a module died")
                     }
                 }
-                _ = futures.select_next_some() => {
-                    eprintln!("A module died");
+                death = futures.select_next_some() => {
+                    match death {
+                        Ok(safe) => {
+                            match safe.1 {
+                                Ok(excuse) => eprintln!("The module {} died with an excuse: {:?}", safe.0, excuse),
+                                Err(e) => eprintln!("The module {} died due to an error: {}", safe.0, e)
+                            }
+                        },
+                        Err(e) => eprintln!("A module crashed: {}", e)
+                    }
                 },
                 complete => break
             }

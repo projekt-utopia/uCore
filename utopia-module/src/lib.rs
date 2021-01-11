@@ -9,16 +9,16 @@ pub trait Module: Any + Send + Sync {
     fn init(&mut self) {}
     fn deinit(&self) {}
 
-    fn thread(&self, mod_send: mpsc::UnboundedSender<props::ModuleCommands>, core_recv: mpsc::UnboundedReceiver<props::CoreCommands>);
+    fn thread(&self, mod_send: mpsc::UnboundedSender<props::ModuleCommands>, core_recv: mpsc::UnboundedReceiver<props::CoreCommands>) -> (&'static str, std::result::Result<props::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>);
 }
 
 
 #[macro_export]
 macro_rules! spawn_async_runtime {
-    ($function:expr) => {
+    ($id:expr, $function:expr) => {
         let rt = utopia_module::Runtime::new().unwrap();
-        rt.block_on(async { $function });
-    };
+        return ($id, rt.block_on(async { $function }));
+    }
 }
 
 #[macro_export]

@@ -13,6 +13,13 @@ pub enum ModuleCommands {
     AddGame
 }
 
+#[derive(Debug)]
+pub enum ThreadDeathExcuse {
+    HiracyDeath,
+    Debug,
+    Other(String)
+}
+
 pub struct ModuleInfo {
     pub name: String,
     pub url: Option<String>,
