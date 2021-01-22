@@ -1,5 +1,5 @@
-use futures::{stream::{FuturesUnordered, StreamExt, SelectAll, select_all}, channel::mpsc};
-use tokio::task::JoinHandle;
+use futures::{stream::{FuturesUnordered, StreamExt, SelectAll, select_all}, channel::mpsc, FutureExt};
+use tokio::{task::JoinHandle, net::UnixListener, signal::unix::{signal, SignalKind}};
 use utopia_module::props;
 
 pub struct EventLoop<'a> {
@@ -16,8 +16,16 @@ impl <'a> EventLoop<'a> {
         }
     }
     pub async fn run(&mut self) {
+        let listener = UnixListener::bind(format!("{}/utopia.sock", std::env::var("XDG_RUNTIME_DIR").expect("XDG_RUNTIME_DIR was not set"))).expect("Could not open socket");
+        let mut exit_signal = signal(SignalKind::quit()).expect("Failure creating SIGQUIT stream. Are you on Unix?");
         loop {
             futures::select! {
+                fe_conn = listener.accept().fuse() => {
+                    match fe_conn {
+                        Ok((_stream, addr)) => println!("Connection from: {:?}", addr),
+                        Err(e) => eprintln!("Error: frontend could not connect to core: {}", e)
+                    }
+                }
                 msg = self.receivers.next() => {
                     match msg {
                         Some(cmd) => {
@@ -36,7 +44,8 @@ impl <'a> EventLoop<'a> {
                         },
                         Err(e) => eprintln!("A module crashed: {}", e)
                     }
-                },
+                }
+                _ = exit_signal.recv().fuse() => break,
                 complete => break
             }
         }
