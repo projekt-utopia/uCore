@@ -9,7 +9,7 @@ pub trait Module: Any + Send + Sync {
     fn init(&mut self) {}
     fn deinit(&self) {}
 
-    fn thread(&self, mod_send: mpsc::UnboundedSender<props::ModuleCommands>, core_recv: mpsc::UnboundedReceiver<props::CoreCommands>) -> (&'static str, std::result::Result<props::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>);
+    fn thread(&self, mod_send: mpsc::UnboundedSender<(&'static str, props::ModuleCommands)>, core_recv: mpsc::UnboundedReceiver<props::CoreCommands>) -> (&'static str, std::result::Result<props::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>);
 }
 
 

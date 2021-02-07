@@ -1,5 +1,10 @@
+// thanks to Michael-F-Bryan for his "Rust FFI Guide"
+// https://michael-f-bryan.github.io/rust-ffi-guide/dynamic_loading.html
+// and to harmic on SO for telling me about Arc<T>
+// https://stackoverflow.com/a/65621675/10890264
+
 pub use utopia_module::{Module, props};
-use std::sync::{Arc};
+use std::sync::Arc;
 use futures::channel::mpsc;
 use std::ffi::OsStr;
 use std::fmt::{self, Formatter, Debug};
@@ -8,7 +13,6 @@ use libloading::{Library, Symbol};
 pub struct IModule {
     pub module: Arc<std::boxed::Box<dyn Module>>,
     pub send: Option<mpsc::UnboundedSender<props::CoreCommands>>,
-    pub recv: Option<mpsc::UnboundedReceiver<props::ModuleCommands>>
 }
 
 pub struct ModuleManager {
@@ -42,29 +46,10 @@ impl ModuleManager {
         let mut module = Box::from_raw(boxed_raw);
         println!("Loaded module: {}", module.get_module_info().name);
         module.init();
-        self.modules.insert(module.id(), IModule { module: Arc::new(module), send: None, recv: None });
+        self.modules.insert(module.id(), IModule { module: Arc::new(module), send: None });
 
         Ok(())
     }
-
-    /* pub fn pre_send(&mut self, request: &mut Request) {
-        debug!("Firing pre_send hooks");
-
-        for plugin in &mut self.plugins {
-            trace!("Firing pre_send for {:?}", plugin.name());
-            plugin.pre_send(request);
-        }
-    }
-
-    /// Iterate over the plugins, running their `post_receive()` hook.
-    pub fn post_receive(&mut self, response: &mut Response) {
-        debug!("Firing post_receive hooks");
-
-        for plugin in &mut self.plugins {
-            trace!("Firing post_receive for {:?}", plugin.name());
-            plugin.post_receive(response);
-        }
-    } */
 
     /// Unload all plugins and loaded plugin libraries, making sure to fire
     /// their `on_plugin_unload()` methods so they can do any necessary cleanup.
