@@ -37,7 +37,15 @@ impl EventLoop {
                 }
                 // New message from frontend over socket
                 msg = self.connections.next() => {
-                    println!("Message from FE: {:?}", msg);
+                    if let Some(msg) = msg {
+                        let (uuid, msg) = msg;
+                        match msg {
+                            Ok(msg) => {
+                                println!("Received message from {}:\n{:#?}", uuid, msg);
+                            },
+                            Err(e) => eprintln!("Received invalid message from {}: {}", uuid, e)
+                        }
+                    }
                 }
 
                 // New message from module

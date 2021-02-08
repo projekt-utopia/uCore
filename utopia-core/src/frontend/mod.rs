@@ -1,9 +1,10 @@
 pub mod socket;
-use futures::stream::{Stream, FusedStream};
+pub mod con;
+use futures::{stream::{Stream, FusedStream}, task::{Context, Poll}};
 use tokio::{net::UnixStream, io::{AsyncRead, AsyncReadExt, ReadBuf}};
+use serde_json;
 use std::pin::Pin;
-use futures::task::{Context, Poll};
-use std::io;
+use std::error::Error;
 use std::collections::HashMap;
 
 struct SocketStream {
@@ -11,7 +12,7 @@ struct SocketStream {
     terminated: bool,
 }
 impl Stream for SocketStream {
-    type Item = io::Result<String>;
+    type Item = Result<con::FrontendEvent, Box<dyn Error>>;
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut buf = [0; 0xFF];
         let mut reader = ReadBuf::new(&mut buf);
@@ -24,17 +25,14 @@ impl Stream for SocketStream {
                         Poll::Ready(None)
                     },
                     _ => {
-                        match std::str::from_utf8(reader.filled()) {
-                            Ok(str) => Poll::Ready(Some(Ok(String::from(str)))),
-                            Err(_) => {
-                                self.terminated = true;
-                                Poll::Ready(None)
-                            }
+                        match serde_json::from_slice(reader.filled()) {
+                            Ok(action) => Poll::Ready(Some(Ok(action))),
+                            Err(e) => Poll::Ready(Some(Err(Box::new(e))))
                         }
                     }
                 }
             },
-            Poll::Ready(Err(e)) => Poll::Ready(Some(Err(e))),
+            Poll::Ready(Err(e)) => Poll::Ready(Some(Err(Box::new(e)))),
             Poll::Pending => Poll::Pending
         }
     }
@@ -49,7 +47,7 @@ impl SockStreamMap {
             inner: HashMap::new()
         }
     }
-    pub async fn insert(&mut self, mut stream: UnixStream) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn insert(&mut self, mut stream: UnixStream) -> Result<(), Box<dyn Error>> {
         stream.readable().await?;
         let mut name: Vec<u8> = vec![0; 0o100];
         let n = stream.read(&mut name).await?;
@@ -62,7 +60,7 @@ impl SockStreamMap {
     }
 }
 impl Stream for SockStreamMap {
-    type Item = (String, io::Result<String>);
+    type Item = (String, Result<con::FrontendEvent, Box<dyn Error>>);
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         for (id, stream) in &mut self.inner {
             match Pin::new(stream).poll_next(cx) {
