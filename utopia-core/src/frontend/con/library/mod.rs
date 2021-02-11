@@ -49,5 +49,5 @@ pub struct LibraryItem {
 
 #[derive(Debug, Deserialize)]
 pub struct GameMethod {
-    method: LibraryItemRunnerMethods
+    pub method: LibraryItemRunnerMethods
 }

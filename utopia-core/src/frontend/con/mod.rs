@@ -11,8 +11,8 @@ pub enum FrontendActions {
 
 #[derive(Debug, Deserialize)]
 pub struct FrontendEvent {
-    version: String,
-    action: FrontendActions
+    pub version: String,
+    pub action: FrontendActions
 }
 
 // Core --> Frontend
@@ -24,6 +24,6 @@ pub enum CoreActions {
 
 #[derive(Debug, Serialize)]
 pub struct CoreEvent {
-    version: String,
-    action: CoreActions
+    pub version: String,
+    pub action: CoreActions
 }

@@ -3,16 +3,36 @@
 // and to harmic on SO for telling me about Arc<T>
 // https://stackoverflow.com/a/65621675/10890264
 
-pub use utopia_module::{Module, props};
+pub use utopia_module::{Module, com};
+use crate::errors::ModuleNotAvailableError;
 use std::sync::Arc;
 use futures::channel::mpsc;
 use std::ffi::OsStr;
 use std::fmt::{self, Formatter, Debug};
 use libloading::{Library, Symbol};
 
+pub type ThreadHandle = tokio::task::JoinHandle<(&'static str, Result<com::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>)>;
+
 pub struct IModule {
     pub module: Arc<std::boxed::Box<dyn Module>>,
-    pub send: Option<mpsc::UnboundedSender<props::CoreCommands>>,
+    pub send: mpsc::UnboundedSender<com::CoreCommands>,
+}
+impl IModule {
+    pub fn new(module: Box<dyn Module>, mod_send: mpsc::UnboundedSender<(&'static str, com::ModuleCommands)>) -> (Self, ThreadHandle) {
+        let (core_send, core_recv) = mpsc::unbounded::<com::CoreCommands>();
+        let module = IModule {
+            module: Arc::new(module),
+            send: core_send
+        };
+        let module_ptr = module.module.clone();
+        (module, tokio::spawn(async move {
+            module_ptr.thread(mod_send, core_recv)
+        }))
+
+    }
+    pub fn send(&self, cmd: com::CoreCommands) -> Result<(), mpsc::TrySendError<com::CoreCommands>> {
+        self.send.unbounded_send(cmd)
+    }
 }
 
 pub struct ModuleManager {
@@ -27,7 +47,7 @@ impl ModuleManager {
             loaded_libraries: Vec::new(),
         }
     }
-    pub unsafe fn load_module<P: AsRef<OsStr>>(&mut self, filename: P) -> Result<(), Box<dyn std::error::Error>> {
+    pub unsafe fn load_module<P: AsRef<OsStr>>(&mut self, filename: P, mod_send: mpsc::UnboundedSender<(&'static str, com::ModuleCommands)>) -> Result<ThreadHandle, Box<dyn std::error::Error>> {
         type ModuleCreate = unsafe fn() -> *mut dyn Module;
 
         let lib = Library::new(filename.as_ref())?; /* (|| "Unable to load the plugin")?; */
@@ -46,9 +66,10 @@ impl ModuleManager {
         let mut module = Box::from_raw(boxed_raw);
         println!("Loaded module: {}", module.get_module_info().name);
         module.init();
-        self.modules.insert(module.id(), IModule { module: Arc::new(module), send: None });
 
-        Ok(())
+        let (module, resolve) = IModule::new(module, mod_send);
+        self.modules.insert(module.module.id(), module);
+        Ok(resolve)
     }
 
     /// Unload all plugins and loaded plugin libraries, making sure to fire
@@ -63,6 +84,13 @@ impl ModuleManager {
 
         for lib in self.loaded_libraries.drain(..) {
             drop(lib);
+        }
+    }
+
+    pub fn get(&self, uuid: &'static str) -> Result<&IModule, ModuleNotAvailableError> {
+        match self.modules.get(uuid) {
+            Some(module) => Ok(module),
+            None => Err(ModuleNotAvailableError::new(uuid))
         }
     }
 }

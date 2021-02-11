@@ -1,15 +1,15 @@
-pub mod props;
+pub mod com;
 pub use tokio::runtime::Runtime; // reexport of tokio runtime, to use with macro
 use std::any::Any;
 use futures::channel::mpsc;
 
 pub trait Module: Any + Send + Sync {
     fn id(&self) -> &'static str;
-    fn get_module_info(&self) -> props::ModuleInfo;
+    fn get_module_info(&self) -> com::ModuleInfo;
     fn init(&mut self) {}
     fn deinit(&self) {}
 
-    fn thread(&self, mod_send: mpsc::UnboundedSender<(&'static str, props::ModuleCommands)>, core_recv: mpsc::UnboundedReceiver<props::CoreCommands>) -> (&'static str, std::result::Result<props::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>);
+    fn thread(&self, mod_send: mpsc::UnboundedSender<(&'static str, com::ModuleCommands)>, core_recv: mpsc::UnboundedReceiver<com::CoreCommands>) -> (&'static str, std::result::Result<com::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>);
 }
 
 
