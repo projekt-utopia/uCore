@@ -33,6 +33,22 @@ impl Display for LibraryItemNotAvailableError {
 }
 
 #[derive(Debug)]
+pub struct FrontendNotAvailableError {
+    name: String
+}
+impl FrontendNotAvailableError {
+    pub fn new(name: String) -> Self {
+        FrontendNotAvailableError { name }
+    }
+}
+impl Error for FrontendNotAvailableError {}
+impl Display for FrontendNotAvailableError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "Attemt to find Frontend {} was unsuccessful", self.name)
+    }
+}
+
+#[derive(Debug)]
 pub struct UnkownUtopiaError<T: Debug> {
     msg: &'static str,
     custom: T

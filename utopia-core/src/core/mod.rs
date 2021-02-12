@@ -50,7 +50,7 @@ impl Library {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum InternalCoreFutures {
-    LaunchedLibraryItem(String, Option<u32>),
+    NewFrontendRegistered(String, tokio::net::UnixStream),
     Debug,
     Error(Box<dyn std::error::Error + Send>)
 }

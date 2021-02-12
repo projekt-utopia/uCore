@@ -18,6 +18,7 @@ pub struct FrontendEvent {
 // Core --> Frontend
 #[derive(Debug, Serialize)]
 pub enum CoreActions {
+    SignalSuccessHandshake(String),
     ResponseGameLibrary(Vec<library::LibraryItem>),
     SignalGameLaunch(String)
 }

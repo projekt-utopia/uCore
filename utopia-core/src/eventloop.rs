@@ -1,7 +1,6 @@
 use futures::{stream::StreamExt, channel::mpsc, FutureExt};
 use tokio::signal::unix::{signal, SignalKind};
-use crate::{modules::ModuleCore, frontend::{con, SockStreamMap, socket::UtopiaSocket}};
-use crate::core;
+use crate::{core::{self, InternalCoreFutures}, modules::ModuleCore, frontend::{con, SockStreamMap, socket::UtopiaSocket}, errors};
 use utopia_module::com;
 pub struct EventLoop {
     core: core::Core,
@@ -22,22 +21,39 @@ impl EventLoop {
         }
     }
     pub async fn run(&mut self) {
-        //let (itx, mut irx) = mpsc::channel::<core::InternalCoreCom>(0xF);
         let mut exit_signal = signal(SignalKind::quit()).expect("Failure creating SIGQUIT stream. Are you on Unix?");
         loop {
             futures::select! {
                 // Internal core communication
                 com = self.core.internal_futures.select_next_some() => {
-                    println!("Internal core future resolved: {:?}", com);
+                    match com {
+                        Ok(msg) => {
+                            match msg {
+                                InternalCoreFutures::NewFrontendRegistered(name, stream) => {
+                                    if let Err(e) = self.connections.insert(name, stream).await {
+                                        eprintln!("Failed to add stream to StreamMap: {}", e);
+                                    }
+                                },
+                                InternalCoreFutures::Debug => println!("Internal debug future resolved"),
+                                InternalCoreFutures::Error(e) => eprintln!("Internal future resolved as error: {}", e)
+                            }
+                        },
+                        Err(e) => eprintln!("Internal core futures errored {}", e)
+                    }
                 }
                 // New connection on socket
                 con = self.socket.next() => {
                     match con.unwrap() {
                         Ok((stream, _addr)) => {
-                            match self.connections.insert(stream).await {
-                                Ok(()) => (),
-                                Err(e) => println!("Error accepting stream: {}", e)
-                            };
+                            self.core.internal_futures.push(tokio::spawn(async move {
+                                match SockStreamMap::accept_handshake(stream).await {
+                                    Ok((name, stream)) => InternalCoreFutures::NewFrontendRegistered(name, stream),
+                                    Err(e) => {
+                                        eprintln!("FE Handshake failed: {}", e);
+                                        InternalCoreFutures::Error(Box::new(errors::UnkownUtopiaError::new("FE Handshake failed", 0)))
+                                    }
+                                }
+                            }))
                         },
                         Err(e) => eprintln!("Error: frontend could not connect to core: {}", e)
                     }
