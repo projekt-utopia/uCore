@@ -3,8 +3,8 @@
 // and to harmic on SO for telling me about Arc<T>
 // https://stackoverflow.com/a/65621675/10890264
 
-pub use utopia_module::{Module, com};
-use crate::errors::ModuleNotAvailableError;
+pub use utopia_module::{Module, com, MODULE_INTERFACE_VERSION};
+use crate::errors::{ModuleABIError, ModuleNotAvailableError};
 use std::sync::Arc;
 use futures::channel::mpsc;
 use std::ffi::OsStr;
@@ -64,12 +64,16 @@ impl ModuleManager {
         let boxed_raw = constructor();
 
         let mut module = Box::from_raw(boxed_raw);
-        println!("Loaded module: {}", module.get_module_info().name);
-        module.init();
+        if module.__abi_version() == MODULE_INTERFACE_VERSION {
+            println!("Loaded module: {}", module.get_module_info().name);
+            module.init();
 
-        let (module, resolve) = IModule::new(module, mod_send);
-        self.modules.insert(module.module.id(), module);
-        Ok(resolve)
+            let (module, resolve) = IModule::new(module, mod_send);
+            self.modules.insert(module.module.id(), module);
+            Ok(resolve)
+        } else {
+            Err(Box::new(ModuleABIError::new(module.id(), module.__abi_version(), MODULE_INTERFACE_VERSION)))
+        }
     }
 
     /// Unload all plugins and loaded plugin libraries, making sure to fire

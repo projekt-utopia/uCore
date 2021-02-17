@@ -3,6 +3,8 @@ pub use tokio::runtime::Runtime; // reexport of tokio runtime, to use with macro
 use std::any::Any;
 use futures::channel::mpsc;
 
+pub const MODULE_INTERFACE_VERSION: &'static str = "0.0.0";
+
 pub trait Module: Any + Send + Sync {
     fn id(&self) -> &'static str;
     fn get_module_info(&self) -> com::ModuleInfo;
@@ -10,6 +12,10 @@ pub trait Module: Any + Send + Sync {
     fn deinit(&self) {}
 
     fn thread(&self, mod_send: mpsc::UnboundedSender<(&'static str, com::ModuleCommands)>, core_recv: mpsc::UnboundedReceiver<com::CoreCommands>) -> (&'static str, std::result::Result<com::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>);
+
+    #[doc(hidden)]
+    #[inline(always)]
+    fn __abi_version(&self) -> &'static str {MODULE_INTERFACE_VERSION} // Prevent loading modules with newer/older ABI, to prevent segfaults.
 }
 
 

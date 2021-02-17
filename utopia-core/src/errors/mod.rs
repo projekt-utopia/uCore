@@ -1,6 +1,24 @@
 use std::{error::Error, fmt::{self, Display, Formatter, Debug}};
 
 #[derive(Debug)]
+pub struct ModuleABIError {
+    name: &'static str,
+    version: &'static str,
+    expected: &'static str
+}
+impl ModuleABIError {
+    pub fn new(name: &'static str, version: &'static str, expected: &'static str) -> Self {
+        ModuleABIError { name, version, expected }
+    }
+}
+impl Error for ModuleABIError {}
+impl Display for ModuleABIError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "The module {} implements ABI version {}. µCore is built against {}", self.name, self.version, self.expected)
+    }
+}
+
+#[derive(Debug)]
 pub struct ModuleNotAvailableError {
     name: &'static str
 }
