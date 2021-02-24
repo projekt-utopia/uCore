@@ -3,7 +3,7 @@ pub mod artwork;
 pub mod credits;
 pub mod item_meta;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum LibraryItemKind {
     Game,
     App

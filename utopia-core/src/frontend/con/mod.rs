@@ -20,6 +20,7 @@ pub struct FrontendEvent {
 pub enum CoreActions {
     SignalSuccessHandshake(String),
     ResponseGameLibrary(Vec<library::LibraryItem>),
+    ResponseItemDetails(library::LibraryItemDetails),
     SignalGameLaunch(String)
 }
 

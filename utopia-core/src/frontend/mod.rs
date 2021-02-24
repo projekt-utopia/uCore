@@ -93,6 +93,7 @@ impl SockStreamMap {
         self.get(uuid)?.write_all(&bytes).await?;
         Ok(())
     }
+
     pub async fn broadcast_stream(&mut self, msg: con::CoreEvent) -> Result<(), Box<dyn Error>> {
         let bytes = serde_json::to_vec(&msg)?;
         for stream in self.inner.values_mut() {

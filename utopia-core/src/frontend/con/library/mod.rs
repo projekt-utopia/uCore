@@ -15,6 +15,10 @@ pub enum LibraryItemKind {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum LibraryItemRunnerMethods {
     Run(String),
+    // uuid of game, uuid of provider
+    RunRunner(String, String),
+    // uuid of game, uuid of provider
+    ChangeDefaultRunner(String, String),
     Close(String),
     GetPid(String),
     Kill(String)
@@ -22,9 +26,8 @@ pub enum LibraryItemRunnerMethods {
 
 #[derive(Debug, Serialize)]
 pub struct LibraryItemRunner {
-    name: String,
-    uuid: String,
-    method: LibraryItemRunnerMethods
+    pub name: String,
+    pub uuid: String
 }
 
 #[derive(Debug, Serialize)]
@@ -39,12 +42,12 @@ pub struct LibraryItemDetails {
 
 #[derive(Debug, Serialize)]
 pub struct LibraryItem {
-    uuid: String,
-    name: String,
-    kind: LibraryItemKind,
-    default_runner: LibraryItemRunner,
-    available_runners: Vec<LibraryItemRunner>,
-    detais: LibraryItemDetails
+    pub uuid: String,
+    pub name: String,
+    pub kind: LibraryItemKind,
+    pub default_runner: LibraryItemRunner,
+    pub available_runners: Vec<LibraryItemRunner>,
+    //detais: LibraryItemDetails
 }
 
 #[derive(Debug, Deserialize)]

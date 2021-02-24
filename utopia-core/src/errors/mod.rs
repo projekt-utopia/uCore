@@ -35,6 +35,22 @@ impl Display for ModuleNotAvailableError {
 }
 
 #[derive(Debug)]
+pub struct ProvModuleNotAvailableError {
+    name: String
+}
+impl ProvModuleNotAvailableError {
+    pub fn new(name: String) -> Self {
+        ProvModuleNotAvailableError { name }
+    }
+}
+impl Error for ProvModuleNotAvailableError {}
+impl Display for ProvModuleNotAvailableError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "The FE requested a module that was not available: {}", self.name)
+    }
+}
+
+#[derive(Debug)]
 pub struct LibraryItemNotAvailableError {
     name: String
 }
