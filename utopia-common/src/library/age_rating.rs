@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum PEGIRating {
     Pegi3,
     Pegi7,
@@ -7,7 +9,7 @@ pub enum PEGIRating {
     Pegi18
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum ESRBRating {
     EsrbRatingPending,
     EsrbEarlyChildhood,
@@ -18,7 +20,7 @@ pub enum ESRBRating {
     EsrbAdult
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum FSKRating {
     Fsk0,
     Fsk6,
@@ -27,7 +29,7 @@ pub enum FSKRating {
     Fsk18
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct AgeRating {
     pub pegi_rating: Option<PEGIRating>,
     pub esrb_rating: Option<ESRBRating>,

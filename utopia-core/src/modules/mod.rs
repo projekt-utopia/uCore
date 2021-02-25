@@ -1,8 +1,7 @@
 pub mod modules;
 use futures::channel::mpsc;
-use utopia_module::com;
+use utopia_common::module;
 use futures::stream;
-//use std::sync::Arc;
 
 pub use modules::ThreadHandle;
 
@@ -12,9 +11,9 @@ pub struct ModuleCore {
 }
 
 impl ModuleCore {
-    pub fn new() -> failure::Fallible<(ModuleCore, mpsc::UnboundedReceiver<(&'static str, com::ModuleCommands)>)> {
+    pub fn new() -> failure::Fallible<(ModuleCore, mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>)> {
         let mut mod_mgr = modules::ModuleManager::new();
-        let (mod_send, mod_recv) = mpsc::unbounded::<(&'static str, com::ModuleCommands)>();
+        let (mod_send, mod_recv) = mpsc::unbounded::<(&'static str, module::ModuleCommands)>();
         let futures = stream::FuturesUnordered::new();
         unsafe {
             match mod_mgr.load_module(&std::ffi::OsStr::new("../utopia-sample-module/target/debug/libsample_mod.so"), mod_send) {

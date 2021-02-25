@@ -1,6 +1,6 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum InputType {
     Keyboard,
     Xbox360,
@@ -10,12 +10,12 @@ pub enum InputType {
     Ps4
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GameModes {
     Other(String)
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Genre {
     PointAndClick,
     Fighting,

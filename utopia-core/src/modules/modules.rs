@@ -3,7 +3,8 @@
 // and to harmic on SO for telling me about Arc<T>
 // https://stackoverflow.com/a/65621675/10890264
 
-pub use utopia_module::{Module, com, MODULE_INTERFACE_VERSION};
+use utopia_common::module;
+pub use utopia_module::{Module, MODULE_INTERFACE_VERSION};
 use crate::errors::{ModuleABIError, ModuleNotAvailableError};
 use std::sync::Arc;
 use futures::channel::mpsc;
@@ -11,15 +12,15 @@ use std::ffi::OsStr;
 use std::fmt::{self, Formatter, Debug};
 use libloading::{Library, Symbol};
 
-pub type ThreadHandle = tokio::task::JoinHandle<(&'static str, Result<com::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>)>;
+pub type ThreadHandle = tokio::task::JoinHandle<(&'static str, Result<module::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>)>;
 
 pub struct IModule {
     pub module: Arc<std::boxed::Box<dyn Module>>,
-    pub send: mpsc::UnboundedSender<com::CoreCommands>,
+    pub send: mpsc::UnboundedSender<module::CoreCommands>,
 }
 impl IModule {
-    pub fn new(module: Box<dyn Module>, mod_send: mpsc::UnboundedSender<(&'static str, com::ModuleCommands)>) -> (Self, ThreadHandle) {
-        let (core_send, core_recv) = mpsc::unbounded::<com::CoreCommands>();
+    pub fn new(module: Box<dyn Module>, mod_send: mpsc::UnboundedSender<(&'static str, module::ModuleCommands)>) -> (Self, ThreadHandle) {
+        let (core_send, core_recv) = mpsc::unbounded::<module::CoreCommands>();
         let module = IModule {
             module: Arc::new(module),
             send: core_send
@@ -30,7 +31,7 @@ impl IModule {
         }))
 
     }
-    pub fn send(&self, cmd: com::CoreCommands) -> Result<(), mpsc::TrySendError<com::CoreCommands>> {
+    pub fn send(&self, cmd: module::CoreCommands) -> Result<(), mpsc::TrySendError<module::CoreCommands>> {
         self.send.unbounded_send(cmd)
     }
 }
@@ -47,7 +48,7 @@ impl ModuleManager {
             loaded_libraries: Vec::new(),
         }
     }
-    pub unsafe fn load_module<P: AsRef<OsStr>>(&mut self, filename: P, mod_send: mpsc::UnboundedSender<(&'static str, com::ModuleCommands)>) -> Result<ThreadHandle, Box<dyn std::error::Error>> {
+    pub unsafe fn load_module<P: AsRef<OsStr>>(&mut self, filename: P, mod_send: mpsc::UnboundedSender<(&'static str, module::ModuleCommands)>) -> Result<ThreadHandle, Box<dyn std::error::Error>> {
         type ModuleCreate = unsafe fn() -> *mut dyn Module;
 
         let lib = Library::new(filename.as_ref())?; /* (|| "Unable to load the plugin")?; */

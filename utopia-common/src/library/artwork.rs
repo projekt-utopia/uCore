@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ArtworkType {
     SquareCover,
     CaseCover,
@@ -9,7 +11,7 @@ pub enum ArtworkType {
     Misc(String)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Artwork {
     pub uuid: String,
     pub r#type: ArtworkType,

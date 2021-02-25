@@ -1,4 +1,4 @@
-pub mod com;
+pub use utopia_common::module;
 pub use tokio::runtime::Runtime; // reexport of tokio runtime, to use with macro
 use std::any::Any;
 use futures::channel::mpsc;
@@ -7,11 +7,11 @@ pub const MODULE_INTERFACE_VERSION: &'static str = "0.0.0";
 
 pub trait Module: Any + Send + Sync {
     fn id(&self) -> &'static str;
-    fn get_module_info(&self) -> com::ModuleInfo;
+    fn get_module_info(&self) -> module::ModuleInfo;
     fn init(&mut self) {}
     fn deinit(&self) {}
 
-    fn thread(&self, mod_send: mpsc::UnboundedSender<(&'static str, com::ModuleCommands)>, core_recv: mpsc::UnboundedReceiver<com::CoreCommands>) -> (&'static str, std::result::Result<com::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>);
+    fn thread(&self, mod_send: mpsc::UnboundedSender<(&'static str, module::ModuleCommands)>, core_recv: mpsc::UnboundedReceiver<module::CoreCommands>) -> (&'static str, std::result::Result<module::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>);
 
     #[doc(hidden)]
     #[inline(always)]

@@ -1,4 +1,4 @@
-pub mod library;
+pub use crate::library::{self, LibraryItemModule as LibraryItem};
 
 /// Signals that the module sends to the core to notify about progress
 #[derive(Debug)]
@@ -22,8 +22,8 @@ pub enum CoreCommands {
 #[derive(Debug)]
 pub enum ModuleCommands {
     Refresh,
-    AddLibraryItem(library::LibraryItem),
-    AddLibraryItemBulk(Vec<library::LibraryItem>),
+    AddLibraryItem(LibraryItem),
+    AddLibraryItemBulk(Vec<LibraryItem>),
     ItemStatusSignal(LibraryItemStatusSignals)
 }
 

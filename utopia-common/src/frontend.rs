@@ -1,4 +1,4 @@
-pub mod library;
+pub use crate::library::{self, LibraryItemFrontend as LibraryItem};
 use serde::{Serialize, Deserialize};
 
 // Frontend --> Core
@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 pub enum FrontendActions {
     GetGameLibrary,
     GetGameDetails(String),
-    GameMethod(library::GameMethod)
+    GameMethod(library::LibraryItemProviderMethods)
 }
 
 #[derive(Debug, Deserialize)]
@@ -19,7 +19,7 @@ pub struct FrontendEvent {
 #[derive(Debug, Serialize)]
 pub enum CoreActions {
     SignalSuccessHandshake(String),
-    ResponseGameLibrary(Vec<library::LibraryItem>),
+    ResponseGameLibrary(Vec<LibraryItem>),
     ResponseItemDetails(library::LibraryItemDetails),
     SignalGameLaunch(String)
 }
@@ -28,4 +28,12 @@ pub enum CoreActions {
 pub struct CoreEvent {
     pub version: String,
     pub action: CoreActions
+}
+impl CoreEvent {
+    pub fn new(action: CoreActions) -> Self {
+        CoreEvent {
+            version: String::from("0.0.0"),
+            action
+        }
+    }
 }

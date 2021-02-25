@@ -1,5 +1,6 @@
 pub mod socket;
-pub mod con;
+//pub mod con;
+use utopia_common::frontend;
 use crate::errors::FrontendNotAvailableError;
 use futures::{stream::{Stream, FusedStream}, task::{Context, Poll}};
 use tokio::{net::UnixStream, io::{AsyncRead, AsyncReadExt, ReadBuf, AsyncWrite, AsyncWriteExt}};
@@ -13,7 +14,7 @@ pub struct SocketStream {
     terminated: bool
 }
 impl Stream for SocketStream {
-    type Item = Result<con::FrontendEvent, Box<dyn Error>>;
+    type Item = Result<frontend::FrontendEvent, Box<dyn Error>>;
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut buf = [0; 0xFF];
         let mut reader = ReadBuf::new(&mut buf);
@@ -73,9 +74,9 @@ impl SockStreamMap {
         Ok((name.chars().filter(|c| !c.is_whitespace()).collect(), stream))
     }
     pub async fn insert(&mut self, name: String, stream: UnixStream) -> Result<(), Box<dyn Error>> {
-        let success = con::CoreEvent {
+        let success = frontend::CoreEvent {
             version: String::from("0.0.0"),
-            action: con::CoreActions::SignalSuccessHandshake(name.clone())
+            action: frontend::CoreActions::SignalSuccessHandshake(name.clone())
         };
         stream.writable().await?;
         stream.try_write(&serde_json::to_vec(&success)?)?;
@@ -88,13 +89,13 @@ impl SockStreamMap {
             None => Err(FrontendNotAvailableError::new(uuid))
         }
     }
-    pub async fn write_stream(&mut self, uuid: String, msg: con::CoreEvent) -> Result<(), Box<dyn Error>> {
+    pub async fn write_stream(&mut self, uuid: String, msg: frontend::CoreEvent) -> Result<(), Box<dyn Error>> {
         let bytes = serde_json::to_vec(&msg)?;
         self.get(uuid)?.write_all(&bytes).await?;
         Ok(())
     }
 
-    pub async fn broadcast_stream(&mut self, msg: con::CoreEvent) -> Result<(), Box<dyn Error>> {
+    pub async fn broadcast_stream(&mut self, msg: frontend::CoreEvent) -> Result<(), Box<dyn Error>> {
         let bytes = serde_json::to_vec(&msg)?;
         for stream in self.inner.values_mut() {
             stream.write_all(&bytes).await?;
@@ -103,7 +104,7 @@ impl SockStreamMap {
     }
 }
 impl Stream for SockStreamMap {
-    type Item = (String, Result<con::FrontendEvent, Box<dyn Error>>);
+    type Item = (String, Result<frontend::FrontendEvent, Box<dyn Error>>);
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         self.inner.retain(|k, v| {
             match v.terminated {

@@ -1,17 +1,26 @@
 use futures::{stream::StreamExt, channel::mpsc, FutureExt};
 use tokio::signal::unix::{signal, SignalKind};
-use crate::{core::{self, InternalCoreFutures}, modules::ModuleCore, frontend::{con, SockStreamMap, socket::UtopiaSocket}, errors};
-use utopia_module::com;
+use crate::{core::{self, InternalCoreFutures}, modules::ModuleCore, frontend::{SockStreamMap, socket::UtopiaSocket}, errors};
+use utopia_common::{module, frontend};
 pub struct EventLoop {
     core: core::Core,
     mods: ModuleCore,
-    channel: mpsc::UnboundedReceiver<(&'static str, com::ModuleCommands)>,
+    channel: mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>,
     socket: UtopiaSocket,
     connections: SockStreamMap
 }
 
+#[macro_export]
+macro_rules! result_printer {
+    ($res:expr, $msg:expr) => {
+        if let Err(e) = $res {
+            eprintln!("{}: {}", $msg, e);
+        }
+    }
+}
+
 impl EventLoop {
-    pub fn new(mods: ModuleCore, channel: mpsc::UnboundedReceiver<(&'static str, com::ModuleCommands)>) -> Self {
+    pub fn new(mods: ModuleCore, channel: mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>) -> Self {
         EventLoop {
             core: core::Core::new(),
             mods,
@@ -64,51 +73,28 @@ impl EventLoop {
                         match msg {
                             Ok(msg) => {
                                 match msg.action {
-                                    con::FrontendActions::GetGameLibrary => {
-                                        let library = con::CoreEvent {
-                                            version: String::from("0.0.0"),
-                                            action: con::CoreActions::ResponseGameLibrary(self.core.library.to_frontend())
-                                        };
-                                        if let Err(e) = self.connections.write_stream(uuid, library).await { //TODO: Don't block
-                                            eprintln!("Failed writing to FE: {}", e);
-                                        }
+                                    frontend::FrontendActions::GetGameLibrary => {
+                                        let library = frontend::CoreEvent::new(frontend::CoreActions::ResponseGameLibrary(self.core.library.to_frontend()));
+                                        result_printer!(self.connections.write_stream(uuid, library).await, "Failed writing to FE"); //TODO: Don't block
                                     },
-                                    con::FrontendActions::GetGameDetails(guuid) => {
-                                        println!("FE {} requested game deteils of {}", uuid, guuid);
-                                        // TODO: Implement a converter from Module to FE - or use the same struct
-                                        /*match self.core.library.get(uuid) {
+                                    frontend::FrontendActions::GetGameDetails(guuid) => {
+                                        println!("FE {} requested game details of {}", uuid, guuid);
+                                        match self.core.library.get(guuid) {
                                             Ok(item) => {
-                                                let details = con::CoreEvent {
-                                                    version: String::from("0.0.0"),
-                                                    action: con::CoreActions::ResponseItemDetails(item.details)
-                                                };
-                                                if let Err(e) = self.connections.write_stream(uuid, details).await { //TODO: Don't block
-                                                    eprintln!("Failed writing to FE: {}", e);
-                                                }
+                                                let details = frontend::CoreEvent::new(frontend::CoreActions::ResponseItemDetails(item.details.clone()));
+                                                result_printer!(self.connections.write_stream(uuid, details).await, "Failed writing to FE"); //TODO: Don't block
                                             },
                                             Err(e) => eprintln!("Failed to get library item: {}", e)
-                                        }*/
+                                        }
                                     },
-                                    con::FrontendActions::GameMethod(method) => {
-                                        match method.method {
-                                            con::library::LibraryItemRunnerMethods::Run(guuid) => {
-                                                match self.core.library.launch_library_item(guuid.clone(), &self.mods.mod_mgr) {
-                                                    Ok(()) => println!("Launching game {}", guuid),
-                                                    Err(e) => eprintln!("Failed to launch game {}: {}", guuid, e)
-                                                }
-                                            },
-                                            con::library::LibraryItemRunnerMethods::RunRunner(guuid, runner) => {
-                                                match self.core.library.launch_library_item_from_provider(guuid.clone(), &self.mods.mod_mgr, runner.clone()) {
-                                                    Ok(()) => println!("Launching game {} via {}", guuid, runner),
-                                                    Err(e) => eprintln!("Failed to launch game {} via {}: {}", guuid, runner, e)
-                                                }
-                                            },
-                                            con::library::LibraryItemRunnerMethods::ChangeDefaultRunner(guuid, runner) => {
-                                                match self.core.library.change_default_provider(guuid.clone(), runner.clone()) {
-                                                    Ok(()) => println!("Changing default runner of game {} to {}", guuid, runner),
-                                                    Err(e) => eprintln!("Error occured during changing runner: {}", e)
-                                                }
-                                            },
+                                    frontend::FrontendActions::GameMethod(method) => {
+                                        match method {
+                                            frontend::library::LibraryItemProviderMethods::Run(guuid) =>
+                                                result_printer!(self.core.library.launch_library_item(guuid, &self.mods.mod_mgr), "Error running item"),
+                                            frontend::library::LibraryItemProviderMethods::RunProvider(guuid, provider) =>
+                                                result_printer!(self.core.library.launch_library_item_from_provider(guuid, &self.mods.mod_mgr, provider), "Error running item via provider"),
+                                            frontend::library::LibraryItemProviderMethods::ChangeDefaultProvider(guuid, provider) =>
+                                                result_printer!(self.core.library.change_default_provider(guuid, provider), "Error changing provider"),
                                             _ => eprintln!("FE {} requested unimplemented method {:?}", uuid, method),
                                         }
                                     }
@@ -124,18 +110,12 @@ impl EventLoop {
                     match msg {
                         Some((uuid, cmd)) => {
                             match cmd {
-                                com::ModuleCommands::Refresh => println!("Module wants to force a FE refresh"),
-                                com::ModuleCommands::AddLibraryItem(item) => {
-                                    if let Err(e) = self.core.library.insert(uuid, item, &self.mods.mod_mgr) {
-                                        eprintln!("Error adding a single item to library: {}", e);
-                                    }
-                                },
-                                com::ModuleCommands::AddLibraryItemBulk(items) =>{
-                                    if let Err(e) = self.core.library.bulk_insert(uuid, items, &self.mods.mod_mgr) {
-                                        eprintln!("Error adding a single item to library: {}", e);
-                                    }
-                                },
-                                com::ModuleCommands::ItemStatusSignal(sig) => println!("Received LibraryItem Status Signal: {:?}", sig)
+                                module::ModuleCommands::Refresh => println!("Module wants to force a FE refresh"),
+                                module::ModuleCommands::AddLibraryItem(item) =>
+                                    result_printer!(self.core.library.insert(uuid, item, &self.mods.mod_mgr), "Error adding an item to library"),
+                                module::ModuleCommands::AddLibraryItemBulk(items) =>
+                                    result_printer!(self.core.library.bulk_insert(uuid, items, &self.mods.mod_mgr), "Error adding items to library"),
+                                module::ModuleCommands::ItemStatusSignal(sig) => println!("Received LibraryItem Status Signal: {:?}", sig)
                             }
                         },
                         None => eprintln!("Communication channel of a module died")

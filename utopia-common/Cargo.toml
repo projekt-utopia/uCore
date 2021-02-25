@@ -1,13 +1,11 @@
 [package]
-name = "utopia-module"
+name = "utopia-common"
 version = "0.1.0"
+license = "MPL-2.0"
 authors = ["sp1rit <sp1rit@disroot.org>"]
 edition = "2018"
-license = "MPL-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-utopia-common = { path = "../utopia-common" }
-tokio = {version = "1.2", features=["rt", "rt-multi-thread", "time", "sync"]}
-futures = "0.3"
+serde = "1.0"
