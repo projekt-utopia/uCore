@@ -12,6 +12,15 @@ pub enum LibraryItemKind {
     App
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum LibraryItemStatus {
+    Running,
+    Closing,
+    Updatable,
+    Updating,
+    Installed
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LibraryItemDetails {
     pub age_rating: age_rating::AgeRating,
@@ -27,7 +36,8 @@ pub struct LibraryItemModule {
     pub uuid: String,
     pub name: String,
     pub kind: LibraryItemKind,
-    pub details: LibraryItemDetails
+    pub details: LibraryItemDetails,
+    pub status: Vec<LibraryItemStatus>
 }
 
 
@@ -36,19 +46,21 @@ pub struct LibraryItemFrontend {
     pub uuid: String,
     pub name: String,
     pub kind: LibraryItemKind,
-    // (uuid, title)
-    pub active_provider: (String, String),
-    pub providers: HashMap<String, String>
+    // (uuid, title, stati)
+    pub active_provider: (String, String, Vec<LibraryItemStatus>),
+    pub providers: HashMap<String, (String, Vec<LibraryItemStatus>)>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum LibraryItemProviderMethods {
-    Run(String),
+    Launch(String),
     // uuid of game, uuid of provider
-    RunProvider(String, String),
+    LaunchViaProvider(String, String),
     // uuid of game, uuid of provider
-    ChangeDefaultProvider(String, String),
+    ChangeSelectedProvider(String, String),
     Close(String),
     GetPid(String),
-    Kill(String)
+    Kill(String),
+    Update(String),
+    Uninstall(String)
 }

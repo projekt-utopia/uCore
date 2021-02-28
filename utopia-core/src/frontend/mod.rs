@@ -76,6 +76,7 @@ impl SockStreamMap {
     pub async fn insert(&mut self, name: String, stream: UnixStream) -> Result<(), Box<dyn Error>> {
         let success = frontend::CoreEvent {
             version: String::from("0.0.0"),
+            uuid: None,
             action: frontend::CoreActions::SignalSuccessHandshake(name.clone())
         };
         stream.writable().await?;

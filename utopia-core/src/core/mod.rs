@@ -10,6 +10,7 @@ use std::collections::HashMap;
 #[derive(Clone)]
 pub struct ItemProvider {
     pub title: String,
+    pub status: Vec<library::LibraryItemStatus>,
     module: &'static str
 }
 
@@ -23,7 +24,7 @@ pub struct LibraryItem {
 }
 impl LibraryItem {
     pub fn new(provider: &'static str, title: String, item: library::LibraryItemModule) -> Self {
-        let iprovider = ItemProvider { title, module: provider };
+        let iprovider = ItemProvider { title, status: item.status, module: provider };
         let mut providers = HashMap::new();
         providers.insert(String::from(provider), iprovider.clone());
         LibraryItem {
@@ -35,8 +36,8 @@ impl LibraryItem {
             providers
         }
     }
-    pub fn add_provider(&mut self, provider: &'static str, title: String) {
-        self.providers.insert(String::from(provider), ItemProvider { title, module: provider });
+    pub fn add_provider(&mut self, provider: &'static str, title: String, status: Vec<library::LibraryItemStatus>) {
+        self.providers.insert(String::from(provider), ItemProvider { title, status, module: provider });
     }
     pub fn run_default(&self, mod_mgr: &ModuleManager) -> Result<(), Box<dyn std::error::Error>> {
         mod_mgr.get(&self.active_provider.1.module)?.send(CoreCommands::LaunchLibraryItem(self.uuid.clone()))?;
@@ -61,8 +62,8 @@ impl LibraryItem {
             uuid: self.uuid.clone(),
             name: self.name.clone(),
             kind: self.kind,
-            active_provider: (self.active_provider.0.clone(), self.active_provider.1.title.clone()),
-            providers: self.providers.iter().map(|(k, v)| (k.to_owned(), v.title.clone())).collect()
+            active_provider: (self.active_provider.0.clone(), self.active_provider.1.title.clone(), self.active_provider.1.status.clone()),
+            providers: self.providers.iter().map(|(k, v)| (k.to_owned(), (v.title.clone(), v.status.clone()))).collect()
         }
     }
 }
@@ -78,9 +79,10 @@ impl Library {
     }
     pub fn insert(&mut self, module: &'static str, item: library::LibraryItemModule, mod_mgr: &ModuleManager) -> Result<(), ModuleNotAvailableError> {
         let title = mod_mgr.get(&module)?.module.get_module_info().name;
+        let status = item.status.clone();
         println!("Added {}", item.uuid.clone());
         self.inner.entry(item.uuid.clone())
-            .and_modify(|item| item.add_provider(module, title.clone()))
+            .and_modify(|item| item.add_provider(module, title.clone(), status))
             .or_insert(LibraryItem::new(module, title, item));
         Ok(())
     }

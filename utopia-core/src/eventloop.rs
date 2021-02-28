@@ -10,11 +10,21 @@ pub struct EventLoop {
     connections: SockStreamMap
 }
 
-#[macro_export]
 macro_rules! result_printer {
     ($res:expr, $msg:expr) => {
         if let Err(e) = $res {
             eprintln!("{}: {}", $msg, e);
+        }
+    }
+}
+macro_rules! result_printer_resp {
+    ($self:expr, $res:expr, $resp:expr) => {
+        let (msg_uuid, fe_uuid) = $resp;
+        let (res, msg) = $res;
+        if let Err(e) = res {
+            let resp = frontend::CoreEvent::new(frontend::CoreActions::Error(msg.to_string(), e.to_string()), msg_uuid);
+            result_printer!($self.connections.write_stream(fe_uuid, resp).await, "Failed writing to FE");
+            eprintln!("{}: {}", msg, e);
         }
     }
 }
@@ -74,27 +84,35 @@ impl EventLoop {
                             Ok(msg) => {
                                 match msg.action {
                                     frontend::FrontendActions::GetGameLibrary => {
-                                        let library = frontend::CoreEvent::new(frontend::CoreActions::ResponseGameLibrary(self.core.library.to_frontend()));
+                                        let library = frontend::CoreEvent::new(frontend::CoreActions::ResponseGameLibrary(self.core.library.to_frontend()), msg.uuid.clone());
                                         result_printer!(self.connections.write_stream(uuid, library).await, "Failed writing to FE"); //TODO: Don't block
+                                        //result_printer_resp!(self, (self.connections.write_stream(uuid, library).await, "Failed writing to FE"), (msg.uuid, uuid.clone()));
                                     },
                                     frontend::FrontendActions::GetGameDetails(guuid) => {
                                         println!("FE {} requested game details of {}", uuid, guuid);
                                         match self.core.library.get(guuid) {
                                             Ok(item) => {
-                                                let details = frontend::CoreEvent::new(frontend::CoreActions::ResponseItemDetails(item.details.clone()));
+                                                let details = frontend::CoreEvent::new(frontend::CoreActions::ResponseItemDetails(item.details.clone()), msg.uuid);
                                                 result_printer!(self.connections.write_stream(uuid, details).await, "Failed writing to FE"); //TODO: Don't block
                                             },
-                                            Err(e) => eprintln!("Failed to get library item: {}", e)
+                                            Err(e) => {
+                                                let resp = frontend::CoreEvent::new(frontend::CoreActions::Error(String::from("Failed to get library item"), e.to_string()), msg.uuid);
+                                                result_printer!(self.connections.write_stream(uuid, resp).await, "Failed writing to FE");
+                                                eprintln!("Failed to get library item: {}", e)
+                                            }
                                         }
                                     },
                                     frontend::FrontendActions::GameMethod(method) => {
                                         match method {
-                                            frontend::library::LibraryItemProviderMethods::Run(guuid) =>
-                                                result_printer!(self.core.library.launch_library_item(guuid, &self.mods.mod_mgr), "Error running item"),
-                                            frontend::library::LibraryItemProviderMethods::RunProvider(guuid, provider) =>
-                                                result_printer!(self.core.library.launch_library_item_from_provider(guuid, &self.mods.mod_mgr, provider), "Error running item via provider"),
-                                            frontend::library::LibraryItemProviderMethods::ChangeDefaultProvider(guuid, provider) =>
-                                                result_printer!(self.core.library.change_default_provider(guuid, provider), "Error changing provider"),
+                                            frontend::library::LibraryItemProviderMethods::Launch(guuid) => {
+                                                result_printer_resp!(self, (self.core.library.launch_library_item(guuid, &self.mods.mod_mgr), "Error running item"), (msg.uuid, uuid));
+                                            },
+                                            frontend::library::LibraryItemProviderMethods::LaunchViaProvider(guuid, provider) => {
+                                                result_printer_resp!(self, (self.core.library.launch_library_item_from_provider(guuid, &self.mods.mod_mgr, provider), "Error running item via provider"), (msg.uuid, uuid));
+                                            },
+                                            frontend::library::LibraryItemProviderMethods::ChangeSelectedProvider(guuid, provider) => {
+                                                result_printer_resp!(self, (self.core.library.change_default_provider(guuid, provider), "Error changing provider"), (msg.uuid, uuid));
+                                            }
                                             _ => eprintln!("FE {} requested unimplemented method {:?}", uuid, method),
                                         }
                                     }
