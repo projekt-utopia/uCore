@@ -19,8 +19,8 @@ macro_rules! result_printer {
 }
 macro_rules! result_printer_resp {
     ($self:expr, $res:expr, $resp:expr) => {
-        let (msg_uuid, fe_uuid) = $resp;
-        let (res, msg) = $res;
+        let (msg_uuid, fe_uuid): (Option<String>, String) = $resp;
+        let (res, msg): (Result<_, Box<dyn std::error::Error>>, &str) = $res;
         if let Err(e) = res {
             let resp = frontend::CoreEvent::new(frontend::CoreActions::Error(msg.to_string(), e.to_string()), msg_uuid);
             result_printer!($self.connections.write_stream(fe_uuid, resp).await, "Failed writing to FE");
