@@ -22,6 +22,7 @@ pub enum ESRBRating {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum FSKRating {
+	FskRatingPending,
     Fsk0,
     Fsk6,
     Fsk12,

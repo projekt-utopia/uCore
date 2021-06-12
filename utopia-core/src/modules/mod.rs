@@ -16,7 +16,15 @@ impl ModuleCore {
         let (mod_send, mod_recv) = mpsc::unbounded::<(&'static str, module::ModuleCommands)>();
         let futures = stream::FuturesUnordered::new();
         unsafe {
-            match mod_mgr.load_module(&std::ffi::OsStr::new("../utopia-sample-module/target/debug/libsample_mod.so"), mod_send) {
+            match mod_mgr.load_module(&std::ffi::OsStr::new("../utopia-dbgfiller-module/target/debug/libdbgfiller_steam_mod.so"), mod_send.clone()) {
+                Ok(handle) => futures.push(handle),
+                Err(e) => eprintln!("Error loading module: {}", e)
+            }
+            match mod_mgr.load_module(&std::ffi::OsStr::new("../utopia-sample-module/target/debug/libsample_mod.so"), mod_send.clone()) {
+                Ok(handle) => futures.push(handle),
+                Err(e) => eprintln!("Error loading module: {}", e)
+            }
+            match mod_mgr.load_module(&std::ffi::OsStr::new("../utopia-gog-dbgfiller-module/target/debug/libdbgfiller_gog_mod.so"), mod_send) {
                 Ok(handle) => futures.push(handle),
                 Err(e) => eprintln!("Error loading module: {}", e)
             }

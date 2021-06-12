@@ -84,13 +84,13 @@ impl SockStreamMap {
         self.inner.insert(name, SocketStream {inner: stream, terminated: false});
         Ok(())
     }
-    pub fn get(&mut self, uuid: String) -> Result<&mut SocketStream, FrontendNotAvailableError> {
-        match self.inner.get_mut(&uuid) {
+    pub fn get(&mut self, uuid: &String) -> Result<&mut SocketStream, FrontendNotAvailableError> {
+        match self.inner.get_mut(uuid) {
             Some(fe) => Ok(fe),
             None => Err(FrontendNotAvailableError::new(uuid))
         }
     }
-    pub async fn write_stream(&mut self, uuid: String, msg: frontend::CoreEvent) -> Result<(), Box<dyn Error>> {
+    pub async fn write_stream(&mut self, uuid: &String, msg: frontend::CoreEvent) -> Result<(), Box<dyn Error>> {
         let bytes = serde_json::to_vec(&msg)?;
         self.get(uuid)?.write_all(&bytes).await?;
         Ok(())

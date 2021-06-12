@@ -3,6 +3,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum InputType {
     Keyboard,
+    Digitizer,
     Xbox360,
     XboxOne,
     Switch,

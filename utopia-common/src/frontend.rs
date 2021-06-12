@@ -1,15 +1,16 @@
-pub use crate::library::{self, LibraryItemFrontend as LibraryItem};
+pub use crate::library::{self, LibraryItemModule, LibraryItemFrontend, LibraryItemFrontendDetails};
 use serde::{Serialize, Deserialize};
 
 // Frontend --> Core
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum FrontendActions {
     GetGameLibrary,
+    GetFullGameLibrary,
     GetGameDetails(String),
     GameMethod(library::LibraryItemProviderMethods)
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct FrontendEvent {
     pub version: String,
     pub uuid: Option<String>,
@@ -17,16 +18,17 @@ pub struct FrontendEvent {
 }
 
 // Core --> Frontend
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum CoreActions {
     SignalSuccessHandshake(String),
-    ResponseGameLibrary(Vec<LibraryItem>),
+    ResponseGameLibrary(Vec<LibraryItemFrontend>),
+    ResponseFullGameLibrary(Vec<LibraryItemFrontendDetails>),
     ResponseItemDetails(library::LibraryItemDetails),
     SignalGameLaunch(String),
     Error(String, String)
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CoreEvent {
     pub version: String,
     pub uuid: Option<String>,

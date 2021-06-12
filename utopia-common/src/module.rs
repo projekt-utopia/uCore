@@ -44,5 +44,5 @@ pub struct ModuleInfo {
     pub developer: String,
     pub developer_url: Option<String>,
     pub description: Option<String>,
-    pub image: Option<Vec<u8>>
+    pub icon: Option<String>
 }

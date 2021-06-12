@@ -55,8 +55,8 @@ pub struct LibraryItemNotAvailableError {
     name: String
 }
 impl LibraryItemNotAvailableError {
-    pub fn new(name: String) -> Self {
-        LibraryItemNotAvailableError { name }
+    pub fn new(name: &String) -> Self {
+        LibraryItemNotAvailableError { name: name.to_owned() }
     }
 }
 impl Error for LibraryItemNotAvailableError {}
@@ -71,8 +71,8 @@ pub struct FrontendNotAvailableError {
     name: String
 }
 impl FrontendNotAvailableError {
-    pub fn new(name: String) -> Self {
-        FrontendNotAvailableError { name }
+    pub fn new(name: &String) -> Self {
+        FrontendNotAvailableError { name: name.to_owned() }
     }
 }
 impl Error for FrontendNotAvailableError {}

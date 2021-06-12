@@ -15,5 +15,5 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 #serde_yaml = "0.8"
 libloading = "0.7"
-tokio = {version = "1.2", features=["rt", "rt-multi-thread", "net", "sync", "signal", "io-util", "macros", "time"]}
+tokio = {version = "1.6", features=["rt", "rt-multi-thread", "net", "sync", "signal", "io-util", "macros", "time"]}
 futures = "0.3"
