@@ -7,6 +7,12 @@ use tokio::task::JoinHandle;
 
 use std::collections::HashMap;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum UpdStateAction {
+	Add,
+	Remove
+}
+
 #[derive(Clone)]
 pub struct ItemProvider {
     pub title: String,
@@ -58,6 +64,22 @@ impl LibraryItem {
         self.active_provider = (provider, title.clone());
         Ok(())
     }
+
+	pub fn update_state(&mut self, provider: String, action: UpdStateAction, state: library::LibraryItemStatus) -> Result<(), ProvModuleNotAvailableError> {
+		let mut prov = self.providers.get_mut(&provider).ok_or(ProvModuleNotAvailableError::new(provider.clone()))?;
+		if action == UpdStateAction::Remove {
+			prov.status = prov.status.clone().into_iter().filter(|&i| i!=state).collect();
+		} else if action == UpdStateAction::Add {
+			if !prov.status.iter().any(|&i| i==state) {
+				prov.status.push(state)
+			}
+		}
+		if self.active_provider.0 == provider {
+			self.active_provider.1 = prov.clone();
+		}
+		Ok(())
+	}
+
     pub fn to_frontend(&self) -> library::LibraryItemFrontend {
         library::LibraryItemFrontend {
             uuid: self.uuid.clone(),
@@ -168,19 +190,22 @@ impl Library {
 #[allow(dead_code)]
 pub enum InternalCoreFutures {
     NewFrontendRegistered(String, tokio::net::UnixStream),
+    ProcessDied(u32, i32 /* old pid, POSIX return code */),
     Debug,
     Error(Box<dyn std::error::Error + Send>)
 }
 
 pub struct Core {
     pub library: Library,
-    pub internal_futures: FuturesUnordered<JoinHandle<InternalCoreFutures>>
+    pub internal_futures: FuturesUnordered<JoinHandle<InternalCoreFutures>>,
+    pub running: std::collections::HashMap<u32, (&'static str, String)> /* pid, (module, uuid) */
 }
 impl Core {
     pub fn new() -> Self {
         Core {
             library: Library::new(),
-            internal_futures: FuturesUnordered::new()
+            internal_futures: FuturesUnordered::new(),
+            running: std::collections::HashMap::new()
         }
     }
 }

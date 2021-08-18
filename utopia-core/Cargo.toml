@@ -17,3 +17,4 @@ serde_json = "1.0"
 libloading = "0.7"
 tokio = {version = "1.6", features=["rt", "rt-multi-thread", "net", "sync", "signal", "io-util", "macros", "time"]}
 futures = "0.3"
+libc = "0.2"

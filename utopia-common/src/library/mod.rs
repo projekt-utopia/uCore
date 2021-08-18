@@ -6,15 +6,15 @@ pub mod item_meta;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum LibraryItemKind {
     Game,
     App
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum LibraryItemStatus {
-    Running,
+    Running(Option<u32>),
     Closing,
     Updatable,
     Updating,

@@ -1,7 +1,7 @@
 use futures::{stream::StreamExt, channel::mpsc, FutureExt};
 use tokio::signal::unix::{signal, SignalKind};
 use crate::{core::{self, InternalCoreFutures}, modules::ModuleCore, frontend::{SockStreamMap, socket::UtopiaSocket}, errors};
-use utopia_common::{module, frontend};
+use utopia_common::{module, frontend, library};
 pub struct EventLoop {
     core: core::Core,
     mods: ModuleCore,
@@ -19,7 +19,7 @@ macro_rules! result_printer {
 }
 macro_rules! result_printer_resp {
     ($self:expr, $res:expr, $resp:expr) => {
-        let (msg_uuid, fe_uuid): (Option<String>, String) = $resp;
+        let (msg_uuid, fe_uuid): (Option<String>, &String) = $resp;
         let (res, msg): (Result<_, Box<dyn std::error::Error>>, &str) = $res;
         if let Err(e) = res {
             let resp = frontend::CoreEvent::new(frontend::CoreActions::Error(msg.to_string(), e.to_string()), msg_uuid);
@@ -53,6 +53,22 @@ impl EventLoop {
                                         eprintln!("Failed to add stream to StreamMap: {}", e);
                                     }
                                 },
+                                InternalCoreFutures::ProcessDied(pid, status) => {
+									if status != 0 {
+										eprintln!("Process {} died with an non-zero exit code: {}", pid, status);
+									}
+									if let Some((module, uuid)) = self.core.running.remove(&pid) {
+										result_printer!(self.core.library.get_mut(&uuid).expect("FIX ME").update_state(module.to_string(), core::UpdStateAction::Remove, library::LibraryItemStatus::Running(Some(pid))),
+											"Failed remove running state to provider");
+										match self.core.library.get(&uuid) {
+											Ok(item) => {
+												let details = frontend::CoreEvent::new(frontend::CoreActions::ResponseGameUpdate(item.to_frontend()), None);
+												result_printer!(self.connections.broadcast_stream(details).await, "Failed writing to FE");
+											},
+											Err(e) => eprintln!("Internal Error: {}", e)
+										};
+									}
+								}
                                 InternalCoreFutures::Debug => println!("Internal debug future resolved"),
                                 InternalCoreFutures::Error(e) => eprintln!("Internal future resolved as error: {}", e)
                             }
@@ -109,13 +125,20 @@ impl EventLoop {
                                     frontend::FrontendActions::GameMethod(method) => {
                                         match method {
                                             frontend::library::LibraryItemProviderMethods::Launch(guuid) => {
-                                                result_printer_resp!(self, (self.core.library.launch_library_item(&guuid, &self.mods.mod_mgr), "Error running item"), (msg.uuid, uuid));
+                                                result_printer_resp!(self, (self.core.library.launch_library_item(&guuid, &self.mods.mod_mgr), "Error running item"), (msg.uuid, &uuid));
                                             },
                                             frontend::library::LibraryItemProviderMethods::LaunchViaProvider(guuid, provider) => {
-                                                result_printer_resp!(self, (self.core.library.launch_library_item_from_provider(&guuid, &self.mods.mod_mgr, provider), "Error running item via provider"), (msg.uuid, uuid));
+                                                result_printer_resp!(self, (self.core.library.launch_library_item_from_provider(&guuid, &self.mods.mod_mgr, provider), "Error running item via provider"), (msg.uuid, &uuid));
                                             },
                                             frontend::library::LibraryItemProviderMethods::ChangeSelectedProvider(guuid, provider) => {
-                                                result_printer_resp!(self, (self.core.library.change_default_provider(&guuid, provider), "Error changing provider"), (msg.uuid, uuid));
+                                                result_printer_resp!(self, (self.core.library.change_default_provider(&guuid, provider), "Error changing provider"), (msg.uuid.clone(), &uuid));
+                                                match self.core.library.get(&guuid) {
+                                                	Ok(item) => {
+                                                		let details = frontend::CoreEvent::new(frontend::CoreActions::ResponseGameUpdate(item.to_frontend()), msg.uuid);
+                                                		result_printer!(self.connections.broadcast_stream(details).await, "Failed writing to FE");
+                                                	},
+                                                	Err(_e) => eprintln!("FE {} requested nonexistant item: {}", &uuid, guuid)
+                                                };
                                             }
                                             _ => eprintln!("FE {} requested unimplemented method {:?}", uuid, method),
                                         }
@@ -139,9 +162,27 @@ impl EventLoop {
                                     result_printer!(self.core.library.bulk_insert(uuid, items, &self.mods.mod_mgr), "Error adding items to library"),
                                 module::ModuleCommands::ItemStatusSignal(sig) => {
                                 	match sig {
-                                		module::LibraryItemStatusSignals::Launched(guid, _pid) => {
-                                			let details = frontend::CoreEvent::new(frontend::CoreActions::SignalGameLaunch(guid), None);
-                                    		result_printer!(self.connections.broadcast_stream(details).await, "Failed writing to FE"); //TODO: Don't block
+                                		module::LibraryItemStatusSignals::Launched(guid, pid) => {
+                                			result_printer!(self.core.library.get_mut(&guid).expect("FIX ME").update_state(uuid.to_string(), core::UpdStateAction::Add, library::LibraryItemStatus::Running(Some(pid))),
+                                				"Failed add running state to provider");
+                                			/*let details = frontend::CoreEvent::new(frontend::CoreActions::SignalGameLaunch(guid), None);
+                                    		result_printer!(self.connections.broadcast_stream(details).await, "Failed writing to FE"); //TODO: Don't block*/
+                                    		self.core.running.insert(pid, (uuid, guid.clone()));
+                                    		self.core.internal_futures.push(tokio::spawn(async move {
+                                    			let status = unsafe {
+                                    				let mut status: libc::c_int = 0;
+                                    				libc::waitpid(pid as i32, &mut status, 0);
+                                    				status
+                                    			};
+                                    			InternalCoreFutures::ProcessDied(pid, status)
+                                    		}));
+                                    		match self.core.library.get(&guid) {
+                                            	Ok(item) => {
+                                            		let details = frontend::CoreEvent::new(frontend::CoreActions::ResponseGameUpdate(item.to_frontend()), None);
+                                            		result_printer!(self.connections.broadcast_stream(details).await, "Failed writing to FE");
+                                            	},
+                                            	Err(_e) => eprintln!("FE {} requested nonexistant item: {}", &uuid, guid)
+                                            };
                                 		},
                                 		_ => println!("Signal from module: {:?}", sig)
                                 	};

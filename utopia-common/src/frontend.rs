@@ -24,7 +24,8 @@ pub enum CoreActions {
     ResponseGameLibrary(Vec<LibraryItemFrontend>),
     ResponseFullGameLibrary(Vec<LibraryItemFrontendDetails>),
     ResponseItemDetails(library::LibraryItemDetails),
-    SignalGameLaunch(String),
+    ResponseGameUpdate(LibraryItemFrontend),
+    //SignalGameLaunch(String),
     Error(String, String)
 }
 
