@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 pub enum DiagType {
 	// uuid of item
 	Item(String),
-	Module,
+	Module
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum InputType {
 	Text(String),
 	Email(String),
-	Password(String),
+	Password(String)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,23 +20,23 @@ pub enum FieldType {
 	Checkbox(bool),
 	Dropdown(Vec<String>),
 	List(Vec<String>),
-	KeyValueList(std::collections::HashMap<String, String>),
+	KeyValueList(std::collections::HashMap<String, String>)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InputField {
 	pub uuid: String,
 	pub title: String,
-	pub r#type: FieldType,
+	pub r#type: FieldType
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PreferencePane {
-	pub fields: Vec<InputField>,
+	pub fields: Vec<InputField>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PreferenceDiag {
 	pub uuid: String,
-	pub panes: std::collections::HashMap<String, PreferencePane>,
+	pub panes: std::collections::HashMap<String, PreferencePane>
 }

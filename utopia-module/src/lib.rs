@@ -1,5 +1,6 @@
-use futures::channel::mpsc;
 use std::any::Any;
+
+use futures::channel::mpsc;
 pub use tokio::runtime::Runtime; // reexport of tokio runtime, to use with macro
 pub use redis;
 pub use futures;
@@ -11,9 +12,10 @@ pub type USend = mpsc::UnboundedSender<(&'static str, module::ModuleCommands)>;
 pub type URecv = mpsc::UnboundedReceiver<module::CoreCommands>;
 pub type URes = (
 	&'static str,
-	std::result::Result<module::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>,
+	std::result::Result<module::ThreadDeathExcuse, Box<dyn std::error::Error + Send + Sync>>
 );
-// TODO: wrap UDb in some kind of struct, that std::fmt::Debug can be implemented
+// TODO: wrap UDb in some kind of struct, that std::fmt::Debug can be
+// implemented
 pub type UDb = std::sync::Arc<std::sync::RwLock<redis::Connection>>;
 
 pub trait Module: Any + Send + Sync {

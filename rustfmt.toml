@@ -44,7 +44,7 @@ group_imports = "StdExternalCrate"
 
 space_after_colon = true
 space_before_colon = false
-spaces_arround_ranges = false
+spaces_around_ranges = false
 
 struct_lit_single_line = false
 

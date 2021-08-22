@@ -5,13 +5,14 @@ pub mod item_meta;
 
 pub mod preferences;
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum LibraryItemKind {
 	Game,
-	App,
+	App
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -20,7 +21,7 @@ pub enum LibraryItemStatus {
 	Closing,
 	Updatable,
 	Updating,
-	Installed,
+	Installed
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,7 +32,7 @@ pub struct LibraryItemDetails {
 	pub genre: Vec<item_meta::Genre>,
 	pub game_modes: Vec<item_meta::GameModes>,
 	pub credits: credits::Credits,
-	pub controller_support: Vec<item_meta::InputType>,
+	pub controller_support: Vec<item_meta::InputType>
 }
 
 #[derive(Debug)]
@@ -40,7 +41,7 @@ pub struct LibraryItemModule {
 	pub name: String,
 	pub kind: LibraryItemKind,
 	pub details: LibraryItemDetails,
-	pub status: Vec<LibraryItemStatus>,
+	pub status: Vec<LibraryItemStatus>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,7 +51,7 @@ pub struct LibraryItemFrontend {
 	pub kind: LibraryItemKind,
 	// (uuid, title, stati)
 	pub active_provider: LibraryProvider,
-	pub providers: HashMap<String, LibraryProvider>,
+	pub providers: HashMap<String, LibraryProvider>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,7 +59,7 @@ pub struct LibraryProvider {
 	pub uuid: String,
 	pub name: String,
 	pub icon: Option<String>,
-	pub stati: Vec<LibraryItemStatus>,
+	pub stati: Vec<LibraryItemStatus>
 }
 
 impl LibraryProvider {
@@ -67,7 +68,7 @@ impl LibraryProvider {
 			uuid,
 			name,
 			icon,
-			stati,
+			stati
 		}
 	}
 }
@@ -85,7 +86,7 @@ pub struct LibraryItemFrontendDetails {
 	pub kind: LibraryItemKind,
 	pub details: LibraryItemDetails,
 	pub active_provider: LibraryProvider,
-	pub providers: HashMap<String, LibraryProvider>,
+	pub providers: HashMap<String, LibraryProvider>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,5 +100,5 @@ pub enum LibraryItemProviderMethods {
 	GetPid(String),
 	Kill(String),
 	Update(String),
-	Uninstall(String),
+	Uninstall(String)
 }

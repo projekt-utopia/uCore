@@ -1,16 +1,20 @@
+use std::{io::prelude::*,
+          path::{Path, PathBuf}};
+
 use tokio::net::UnixDatagram;
 use tinytemplate::TinyTemplate;
-use std::path::{Path, PathBuf};
-use std::io::prelude::*;
 
 struct UtopiaDatagramSocket {
 	path: PathBuf,
-	inner: UnixDatagram,
+	inner: UnixDatagram
 }
 impl UtopiaDatagramSocket {
 	pub fn bind(path: impl AsRef<Path>) -> std::io::Result<Self> {
 		let path = path.as_ref().to_owned();
-		UnixDatagram::bind(&path).map(|inner| UtopiaDatagramSocket { path, inner })
+		UnixDatagram::bind(&path).map(|inner| UtopiaDatagramSocket {
+			path,
+			inner
+		})
 	}
 }
 impl Drop for UtopiaDatagramSocket {
@@ -52,7 +56,7 @@ pub async fn spawn(config: &crate::UtopiaDatabaseConfig) -> failure::Fallible<(t
 		let fd = libc::mkstemp(fileptr);
 		(
 			std::fs::File::from_raw_fd(fd),
-			std::ffi::CString::from_raw(fileptr).to_string_lossy().into_owned(),
+			std::ffi::CString::from_raw(fileptr).to_string_lossy().into_owned()
 		)
 	};
 	write!(&mut file, "{}", &conf_str)?;
@@ -76,10 +80,10 @@ pub async fn spawn(config: &crate::UtopiaDatabaseConfig) -> failure::Fallible<(t
 					println!("µtopia database is ready!");
 					break;
 				}
-			}
+			},
 			Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
 				continue;
-			}
+			},
 			Err(e) => {
 				return Err(failure::Error::from_boxed_compat(Box::new(e)));
 			}

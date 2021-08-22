@@ -1,21 +1,23 @@
 // thanks to @Shepmaster: see https://stackoverflow.com/questions/40218416/how-do-i-close-a-unix-socket-in-rust
+use std::{path::{Path, PathBuf},
+          pin::Pin,
+          task::{Context, Poll}};
+
 use futures::stream::{FusedStream, Stream};
-use std::path::{Path, PathBuf};
-use std::{
-	pin::Pin,
-	task::{Context, Poll},
-};
 use tokio::net::{unix::SocketAddr, UnixListener, UnixStream};
 
 pub struct UtopiaSocket {
 	path: PathBuf,
-	listener: UnixListener,
+	listener: UnixListener
 }
 
 impl UtopiaSocket {
 	pub fn bind(path: impl AsRef<Path>) -> std::io::Result<Self> {
 		let path = path.as_ref().to_owned();
-		UnixListener::bind(&path).map(|listener| UtopiaSocket { path, listener })
+		UnixListener::bind(&path).map(|listener| UtopiaSocket {
+			path,
+			listener
+		})
 	}
 }
 
@@ -26,7 +28,7 @@ impl Stream for UtopiaSocket {
 		let this = Pin::into_inner(self);
 		match Pin::new(&mut this.listener).poll_accept(cx) {
 			Poll::Ready(res) => Poll::Ready(Some(res)),
-			Poll::Pending => Poll::Pending,
+			Poll::Pending => Poll::Pending
 		}
 	}
 }

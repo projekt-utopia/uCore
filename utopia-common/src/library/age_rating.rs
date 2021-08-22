@@ -6,7 +6,7 @@ pub enum PEGIRating {
 	Pegi7,
 	Pegi12,
 	Pegi16,
-	Pegi18,
+	Pegi18
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -17,7 +17,7 @@ pub enum ESRBRating {
 	EsrbEveryone10Plus,
 	EsrbTeen,
 	EsrbMature,
-	EsrbAdult,
+	EsrbAdult
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -27,12 +27,12 @@ pub enum FSKRating {
 	Fsk6,
 	Fsk12,
 	Fsk16,
-	Fsk18,
+	Fsk18
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct AgeRating {
 	pub pegi_rating: Option<PEGIRating>,
 	pub esrb_rating: Option<ESRBRating>,
-	pub fsk_rating: Option<FSKRating>,
+	pub fsk_rating: Option<FSKRating>
 }

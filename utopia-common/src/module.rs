@@ -8,7 +8,7 @@ pub enum LibraryItemStatusSignals {
 	// (uuid)
 	Closed(String),
 	// (uuid)
-	Crashed(String),
+	Crashed(String)
 }
 
 // Core --> Module
@@ -19,8 +19,8 @@ pub enum CoreCommands {
 	RequestPreferenceDiag(library::preferences::DiagType),
 	PreferenceDiagUpdate(
 		library::preferences::DiagType,
-		std::collections::HashMap<String, library::preferences::FieldType>,
-	),
+		std::collections::HashMap<String, library::preferences::FieldType>
+	)
 }
 
 // Module --> Core
@@ -30,25 +30,28 @@ pub enum ModuleCommands {
 	AddLibraryItem(LibraryItem),
 	AddLibraryItemBulk(Vec<LibraryItem>),
 	ItemStatusSignal(LibraryItemStatusSignals),
-	PreferenceDiagResponse(library::preferences::DiagType, library::preferences::PreferenceDiag),
+	PreferenceDiagResponse(library::preferences::DiagType, library::preferences::PreferenceDiag)
 }
 
 /// The return value of the module thread
 #[derive(Debug)]
 pub enum ThreadDeathExcuse {
-	/// If a runtime dependency dies and the module is unable to restart it
+	/// If a runtime dependency dies and the module is unable to
+	/// restart it
 	HiracyDeath,
-	/// Should be self-explaining. We will not accept any MR that actually throws this
+	/// Should be self-explaining. We will not accept any MR that
+	/// actually throws this
 	Debug,
-	Other(String),
+	Other(String)
 }
 
-/// Human readable information about a module. Returned by the get_module_info function (outside of the thread)
+/// Human readable information about a module. Returned by the
+/// get_module_info function (outside of the thread)
 pub struct ModuleInfo {
 	pub name: String,
 	pub url: Option<String>,
 	pub developer: String,
 	pub developer_url: Option<String>,
 	pub description: Option<String>,
-	pub icon: Option<String>,
+	pub icon: Option<String>
 }

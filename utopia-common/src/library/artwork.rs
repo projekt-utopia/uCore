@@ -8,7 +8,7 @@ pub enum ArtworkType {
 	Logo,
 	LandscapeCover,
 	Background,
-	Misc(String),
+	Misc(String)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,10 +19,10 @@ pub enum ArtworkData {
 		i32,
 		i32,
 		i32,
-		i32, /* data, has_alpha, bits_per_sample, width, height, rowstride */
+		i32 /* data, has_alpha, bits_per_sample, width, height, rowstride */
 	),
 	Uri(String),
-	Path(std::path::PathBuf),
+	Path(std::path::PathBuf)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,5 +30,5 @@ pub struct Artwork {
 	pub uuid: String,
 	pub r#type: ArtworkType,
 	pub mime: String,
-	pub data: ArtworkData,
+	pub data: ArtworkData
 }

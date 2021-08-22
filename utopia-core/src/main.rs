@@ -4,10 +4,9 @@ mod errors;
 mod eventloop;
 pub mod frontend;
 mod modules;
-use eventloop::EventLoop;
+use std::{env::var as env_var, path::PathBuf};
 
-use std::path::PathBuf;
-use std::env::var as env_var;
+use eventloop::EventLoop;
 
 #[derive(serde::Serialize)]
 pub struct UtopiaDatabaseConfig {
@@ -16,13 +15,13 @@ pub struct UtopiaDatabaseConfig {
 	pub inherits: PathBuf,
 	pub logfile: PathBuf,
 	pub working_dir: PathBuf,
-	pub ready_sock: PathBuf,
+	pub ready_sock: PathBuf
 }
 
 pub struct UtopiaConfiguration {
 	pub runtime_dir: PathBuf,
 	pub socket: PathBuf,
-	pub database: UtopiaDatabaseConfig,
+	pub database: UtopiaDatabaseConfig
 }
 
 impl UtopiaConfiguration {
@@ -44,9 +43,9 @@ impl UtopiaConfiguration {
 				inherits: PathBuf::from("/home/admin/workspace/core/µCore/default.conf"),
 				logfile: format!("{}/db.log", data_dir).into(),
 				working_dir: data_dir.into(),
-				ready_sock: format!("{}/_utopiadbctl.dsock", runtime_dir).into(),
+				ready_sock: format!("{}/_utopiadbctl.dsock", runtime_dir).into()
 			},
-			runtime_dir: runtime_dir.into(),
+			runtime_dir: runtime_dir.into()
 		}
 	}
 }

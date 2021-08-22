@@ -1,12 +1,11 @@
-use crate::{
-	core::{self, InternalCoreFutures},
-	errors,
-	frontend::{socket::UtopiaSocket, SockStreamMap, ev},
-	modules::ModuleCore,
-};
 use futures::{channel::mpsc, stream::StreamExt, FutureExt};
 use tokio::signal::unix::{signal, SignalKind};
 use utopia_common::{frontend, library, module};
+
+use crate::{core::{self, InternalCoreFutures},
+            errors,
+            frontend::{ev, socket::UtopiaSocket, SockStreamMap},
+            modules::ModuleCore};
 pub struct EventLoop {
 	core: core::Core,
 	mods: ModuleCore,
@@ -14,7 +13,7 @@ pub struct EventLoop {
 	socket: UtopiaSocket,
 	connections: SockStreamMap,
 	db_pid: u32,
-	database: redis::Client,
+	database: redis::Client
 }
 
 #[macro_export]
@@ -46,7 +45,7 @@ impl EventLoop {
 		mods: ModuleCore,
 		channel: mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>,
 		mut db_process: tokio::process::Child,
-		database: (redis::Client, utopia_module::UDb),
+		database: (redis::Client, utopia_module::UDb)
 	) -> Self {
 		let db_pid = db_process.id().expect("Failed getting pid of database service");
 		let (database, _shared) = database;
@@ -63,9 +62,10 @@ impl EventLoop {
 			socket: UtopiaSocket::bind(config.socket).expect("Could not open socket"),
 			connections: SockStreamMap::new(),
 			db_pid,
-			database,
+			database
 		}
 	}
+
 	pub async fn run(&mut self) {
 		let mut exit_signal = signal(SignalKind::quit()).expect("Failure creating SIGQUIT stream. Are you on Unix?");
 		loop {

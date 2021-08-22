@@ -1,27 +1,24 @@
 pub mod ev;
 pub mod socket;
 //pub mod con;
-use crate::errors::FrontendNotAvailableError;
-use futures::{
-	stream::{FusedStream, Stream},
-	task::{Context, Poll},
-};
+use std::{collections::HashMap, error::Error, pin::Pin};
+
+use futures::{stream::{FusedStream, Stream},
+              task::{Context, Poll}};
 use serde_json;
-use std::collections::HashMap;
-use std::error::Error;
-use std::pin::Pin;
-use tokio::{
-	io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf},
-	net::UnixStream,
-};
+use tokio::{io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf},
+            net::UnixStream};
 use utopia_common::frontend;
+
+use crate::errors::FrontendNotAvailableError;
 
 pub struct SocketStream {
 	inner: UnixStream,
-	terminated: bool,
+	terminated: bool
 }
 impl Stream for SocketStream {
 	type Item = Result<frontend::FrontendEvent, Box<dyn Error>>;
+
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
 		let mut buf = [0; 0xFF];
 		let mut reader = ReadBuf::new(&mut buf);
@@ -31,14 +28,14 @@ impl Stream for SocketStream {
 				0 => {
 					self.terminated = true;
 					Poll::Ready(None)
-				}
+				},
 				_ => match serde_json::from_slice(reader.filled()) {
 					Ok(action) => Poll::Ready(Some(Ok(action))),
-					Err(e) => Poll::Ready(Some(Err(Box::new(e)))),
-				},
+					Err(e) => Poll::Ready(Some(Err(Box::new(e))))
+				}
 			},
 			Poll::Ready(Err(e)) => Poll::Ready(Some(Err(Box::new(e)))),
-			Poll::Pending => Poll::Pending,
+			Poll::Pending => Poll::Pending
 		}
 	}
 }
@@ -47,10 +44,12 @@ impl AsyncWrite for SocketStream {
 		let stream = Pin::new(&mut self.inner);
 		stream.poll_write(cx, buf)
 	}
+
 	fn poll_flush(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Result<(), std::io::Error>> {
 		let stream = Pin::new(&mut self.inner);
 		stream.poll_flush(cx)
 	}
+
 	fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Result<(), std::io::Error>> {
 		let stream = Pin::new(&mut self.inner);
 		stream.poll_shutdown(cx)
@@ -58,12 +57,15 @@ impl AsyncWrite for SocketStream {
 }
 
 pub struct SockStreamMap {
-	inner: HashMap<String, SocketStream>,
+	inner: HashMap<String, SocketStream>
 }
 impl SockStreamMap {
 	pub fn new() -> Self {
-		Self { inner: HashMap::new() }
+		Self {
+			inner: HashMap::new()
+		}
 	}
+
 	pub async fn accept_handshake(mut stream: UnixStream) -> Result<(String, UnixStream), Box<dyn Error>> {
 		stream.readable().await?;
 		let mut name: Vec<u8> = vec![0; 0o100];
@@ -74,29 +76,29 @@ impl SockStreamMap {
 		// https://stackoverflow.com/a/57063944/10890264
 		Ok((name.chars().filter(|c| !c.is_whitespace()).collect(), stream))
 	}
+
 	pub async fn insert(&mut self, name: String, stream: UnixStream) -> Result<(), Box<dyn Error>> {
 		let success = frontend::CoreEvent {
 			version: String::from("0.0.0"),
 			uuid: None,
-			action: frontend::CoreActions::SignalSuccessHandshake(name.clone()),
+			action: frontend::CoreActions::SignalSuccessHandshake(name.clone())
 		};
 		stream.writable().await?;
 		stream.try_write(&serde_json::to_vec(&success)?)?;
-		self.inner.insert(
-			name,
-			SocketStream {
-				inner: stream,
-				terminated: false,
-			},
-		);
+		self.inner.insert(name, SocketStream {
+			inner: stream,
+			terminated: false
+		});
 		Ok(())
 	}
+
 	pub fn get(&mut self, uuid: &String) -> Result<&mut SocketStream, FrontendNotAvailableError> {
 		match self.inner.get_mut(uuid) {
 			Some(fe) => Ok(fe),
-			None => Err(FrontendNotAvailableError::new(uuid)),
+			None => Err(FrontendNotAvailableError::new(uuid))
 		}
 	}
+
 	pub async fn write_stream(&mut self, uuid: &String, msg: frontend::CoreEvent) -> Result<(), Box<dyn Error>> {
 		let bytes = serde_json::to_vec(&msg)?;
 		self.get(uuid)?.write_all(&bytes).await?;
@@ -113,26 +115,28 @@ impl SockStreamMap {
 }
 impl Stream for SockStreamMap {
 	type Item = (String, Result<frontend::FrontendEvent, Box<dyn Error>>);
+
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
 		self.inner.retain(|k, v| match v.terminated {
 			true => {
 				println!("SockStream {} removed from Map", k);
 				false
-			}
-			false => true,
+			},
+			false => true
 		});
 		for (id, stream) in &mut self.inner {
 			match Pin::new(stream).poll_next(cx) {
 				Poll::Ready(Some(a)) => return Poll::Ready(Some((id.to_owned(), a))),
 				Poll::Ready(None) => {
-					// I'd much rather remove the SocketStream item here, but I can't because I'd have another mutable ref
+					// I'd much rather remove the SocketStream item here, but I can't
+					// because I'd have another mutable ref
 					/*match self.inner.remove(id) {
 						Some(_) => println!("FE Connection {} dropped, removing from Map", id),
 						None => eprintln!("FE Connection {} dropped, but it was not in the Map (this should not happen!!!)", id)
 					}*/
 					println!("FE Connection {} died, removing on next iteration", id);
-				}
-				_ => (),
+				},
+				_ => ()
 			}
 		}
 		Poll::Pending

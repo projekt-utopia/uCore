@@ -8,12 +8,12 @@ pub enum InputType {
 	XboxOne,
 	Switch,
 	Ps3,
-	Ps4,
+	Ps4
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GameModes {
-	Other(String),
+	Other(String)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,5 +41,5 @@ pub enum Genre {
 	Indie,
 	CardBoardGame,
 	Moba,
-	Other(String),
+	Other(String)
 }
