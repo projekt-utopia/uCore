@@ -3,6 +3,29 @@ use std::{
 	fmt::{self, Debug, Display, Formatter},
 };
 
+use std::path::PathBuf;
+#[derive(Debug)]
+pub struct FileError {
+	path: PathBuf,
+	inner: std::io::Error,
+}
+impl FileError {
+	pub fn new(path: PathBuf, err: std::io::Error) -> Self {
+		FileError { path, inner: err }
+	}
+}
+impl Error for FileError {}
+impl Display for FileError {
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+		write!(
+			f,
+			"Unable to interact with file {}: {}",
+			self.path.to_string_lossy(),
+			self.inner
+		)
+	}
+}
+
 #[derive(Debug)]
 pub struct ModuleABIError {
 	name: &'static str,

@@ -1,7 +1,7 @@
 use crate::{
 	core::{self, InternalCoreFutures},
 	errors,
-	frontend::{socket::UtopiaSocket, SockStreamMap},
+	frontend::{socket::UtopiaSocket, SockStreamMap, ev},
 	modules::ModuleCore,
 };
 use futures::{channel::mpsc, stream::StreamExt, FutureExt};
@@ -13,8 +13,11 @@ pub struct EventLoop {
 	channel: mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>,
 	socket: UtopiaSocket,
 	connections: SockStreamMap,
+	db_pid: u32,
+	database: redis::Client,
 }
 
+#[macro_export]
 macro_rules! result_printer {
 	($res:expr, $msg:expr) => {
 		if let Err(e) = $res {
@@ -38,17 +41,29 @@ macro_rules! result_printer_resp {
 }
 
 impl EventLoop {
-	pub fn new(mods: ModuleCore, channel: mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>) -> Self {
+	pub fn new(
+		config: crate::UtopiaConfiguration,
+		mods: ModuleCore,
+		channel: mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>,
+		mut db_process: tokio::process::Child,
+		database: (redis::Client, utopia_module::UDb),
+	) -> Self {
+		let db_pid = db_process.id().expect("Failed getting pid of database service");
+		let (database, _shared) = database;
+		let core = core::Core::new();
+		core.internal_futures.push(tokio::spawn(async move {
+			let res = db_process.wait().await;
+			InternalCoreFutures::DatabaseProcessDied(res)
+		}));
+
 		EventLoop {
-			core: core::Core::new(),
+			core,
 			mods,
 			channel,
-			socket: UtopiaSocket::bind(format!(
-				"{}/utopia.sock",
-				std::env::var("XDG_RUNTIME_DIR").expect("XDG_RUNTIME_DIR was not set")
-			))
-			.expect("Could not open socket"),
+			socket: UtopiaSocket::bind(config.socket).expect("Could not open socket"),
 			connections: SockStreamMap::new(),
+			db_pid,
+			database,
 		}
 	}
 	pub async fn run(&mut self) {
@@ -72,15 +87,13 @@ impl EventLoop {
 									if let Some((module, uuid)) = self.core.running.remove(&pid) {
 										result_printer!(self.core.library.get_mut(&uuid).expect("FIX ME").update_state(module.to_string(), core::UpdStateAction::Remove, library::LibraryItemStatus::Running(Some(pid))),
 											"Failed remove running state to provider");
-										match self.core.library.get(&uuid) {
-											Ok(item) => {
-												let details = frontend::CoreEvent::new(frontend::CoreActions::ResponseGameUpdate(item.to_frontend()), None);
-												result_printer!(self.connections.broadcast_stream(details).await, "Failed writing to FE");
-											},
-											Err(e) => eprintln!("Internal Error: {}", e)
-										};
+										ev::send_updated_item(&self.core.library, &uuid, &mut self.connections).await;
 									}
-								}
+								},
+								InternalCoreFutures::DatabaseProcessDied(res) => {
+									eprintln!("FATAL ERROR: Database process died unexpectedly: {:?}\nPlease check its log for more information.", res);
+									break;
+								},
 								InternalCoreFutures::Debug => println!("Internal debug future resolved"),
 								InternalCoreFutures::Error(e) => eprintln!("Internal future resolved as error: {}", e)
 							}
@@ -154,6 +167,17 @@ impl EventLoop {
 											}
 											_ => eprintln!("FE {} requested unimplemented method {:?}", uuid, method),
 										}
+									},
+									frontend::FrontendActions::RequestPreferenceDiag(module, item) => {
+										if let Ok(imodule) = self.mods.mod_mgr.get_owned(&module) {
+											self.core.open_preferences.insert((module, item.clone()), (uuid, msg.uuid));
+											result_printer!(imodule.send(utopia_common::module::CoreCommands::RequestPreferenceDiag(item)), "Failed messaging module")
+										};
+									},
+									frontend::FrontendActions::PreferenceDiagUpdate((module, itype), values) => {
+										if let Ok(imodule) = self.mods.mod_mgr.get_owned(&module) {
+											result_printer!(imodule.send(utopia_common::module::CoreCommands::PreferenceDiagUpdate(itype, values)), "Failed messaging module")
+										}
 									}
 								}
 							},
@@ -188,16 +212,17 @@ impl EventLoop {
 												};
 												InternalCoreFutures::ProcessDied(pid, status)
 											}));
-											match self.core.library.get(&guid) {
-												Ok(item) => {
-													let details = frontend::CoreEvent::new(frontend::CoreActions::ResponseGameUpdate(item.to_frontend()), None);
-													result_printer!(self.connections.broadcast_stream(details).await, "Failed writing to FE");
-												},
-												Err(_e) => eprintln!("FE {} requested nonexistant item: {}", &uuid, guid)
-											};
+											ev::send_updated_item(&self.core.library, &guid, &mut self.connections).await;
 										},
 										_ => println!("Signal from module: {:?}", sig)
 									};
+								},
+								module::ModuleCommands::PreferenceDiagResponse(itype, diag) => {
+									let gt = (uuid.to_string(), itype);
+									if let Some((recv, muuid)) = self.core.open_preferences.remove(&gt) {
+										let diag = frontend::CoreEvent::new(frontend::CoreActions::PreferenceDiagResponse(gt, diag), muuid);
+										result_printer!(self.connections.write_stream(&recv, diag).await, "Failed writing to FE"); //TODO: Don't block
+									}
 								}
 							}
 						},
@@ -219,6 +244,10 @@ impl EventLoop {
 				_ = exit_signal.recv().fuse() => break,
 				complete => break
 			}
+		}
+		unsafe {
+			// try gracefully killing redis
+			libc::kill(self.db_pid as i32, libc::SIGINT);
 		}
 	}
 }

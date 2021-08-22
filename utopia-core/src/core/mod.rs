@@ -269,6 +269,7 @@ impl Library {
 pub enum InternalCoreFutures {
 	NewFrontendRegistered(String, tokio::net::UnixStream),
 	ProcessDied(u32, i32 /* old pid, POSIX return code */),
+	DatabaseProcessDied(std::io::Result<std::process::ExitStatus>),
 	Debug,
 	Error(Box<dyn std::error::Error + Send>),
 }
@@ -277,6 +278,9 @@ pub struct Core {
 	pub library: Library,
 	pub internal_futures: FuturesUnordered<JoinHandle<InternalCoreFutures>>,
 	pub running: std::collections::HashMap<u32, (&'static str, String)>, /* pid, (module, uuid) */
+	// <(module uuid, pot. item uuid), (frontend uuid, msg resp uuid)>
+	pub open_preferences:
+		std::collections::HashMap<(String, utopia_common::library::preferences::DiagType), (String, Option<String>)>,
 }
 impl Core {
 	pub fn new() -> Self {
@@ -284,6 +288,7 @@ impl Core {
 			library: Library::new(),
 			internal_futures: FuturesUnordered::new(),
 			running: std::collections::HashMap::new(),
+			open_preferences: std::collections::HashMap::new(),
 		}
 	}
 }

@@ -16,6 +16,11 @@ pub enum LibraryItemStatusSignals {
 pub enum CoreCommands {
 	Reload,
 	LaunchLibraryItem(String),
+	RequestPreferenceDiag(library::preferences::DiagType),
+	PreferenceDiagUpdate(
+		library::preferences::DiagType,
+		std::collections::HashMap<String, library::preferences::FieldType>,
+	),
 }
 
 // Module --> Core
@@ -25,6 +30,7 @@ pub enum ModuleCommands {
 	AddLibraryItem(LibraryItem),
 	AddLibraryItemBulk(Vec<LibraryItem>),
 	ItemStatusSignal(LibraryItemStatusSignals),
+	PreferenceDiagResponse(library::preferences::DiagType, library::preferences::PreferenceDiag),
 }
 
 /// The return value of the module thread

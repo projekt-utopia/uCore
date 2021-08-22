@@ -1,3 +1,4 @@
+pub mod ev;
 pub mod socket;
 //pub mod con;
 use crate::errors::FrontendNotAvailableError;

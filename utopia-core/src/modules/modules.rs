@@ -3,14 +3,14 @@
 // and to harmic on SO for telling me about Arc<T>
 // https://stackoverflow.com/a/65621675/10890264
 
-use crate::errors::{ModuleABIError, ModuleNotAvailableError};
+use crate::errors::{self, ModuleABIError, ModuleNotAvailableError};
 use futures::channel::mpsc;
 use libloading::{Library, Symbol};
 use std::ffi::OsStr;
 use std::fmt::{self, Debug, Formatter};
 use std::sync::Arc;
 use utopia_common::module;
-pub use utopia_module::{Module, MODULE_INTERFACE_VERSION};
+pub use utopia_module::{Module, MODULE_INTERFACE_VERSION, UDb};
 
 pub type ThreadHandle = tokio::task::JoinHandle<(
 	&'static str,
@@ -44,14 +44,18 @@ impl IModule {
 
 pub struct ModuleManager {
 	pub modules: std::collections::HashMap<&'static str, IModule>,
+	pub mod_lib: std::collections::HashMap<String, &'static str>,
 	loaded_libraries: Vec<Library>,
+	connection: UDb,
 }
 
 impl ModuleManager {
-	pub fn new() -> ModuleManager {
+	pub fn new(connection: UDb) -> ModuleManager {
 		ModuleManager {
 			modules: std::collections::HashMap::new(),
+			mod_lib: std::collections::HashMap::new(),
 			loaded_libraries: Vec::new(),
+			connection,
 		}
 	}
 	pub unsafe fn load_module<P: AsRef<OsStr>>(
@@ -77,9 +81,10 @@ impl ModuleManager {
 		let mut module = Box::from_raw(boxed_raw);
 		if module.__abi_version() == MODULE_INTERFACE_VERSION {
 			println!("Loaded module: {}", module.get_module_info().name);
-			module.init();
+			module.init(self.connection.clone());
 
 			let (module, resolve) = IModule::new(module, mod_send);
+			self.mod_lib.insert(module.module.id().to_string(), module.module.id());
 			self.modules.insert(module.module.id(), module);
 			Ok(resolve)
 		} else {
@@ -111,6 +116,12 @@ impl ModuleManager {
 			Some(module) => Ok(module),
 			None => Err(ModuleNotAvailableError::new(uuid)),
 		}
+	}
+	pub fn get_owned(&self, uuid: &String) -> Result<&IModule, errors::ProvModuleNotAvailableError> {
+		self.mod_lib
+			.get(uuid)
+			.map(|uuid| self.modules.get(uuid).unwrap())
+			.ok_or(errors::ProvModuleNotAvailableError::new(uuid.to_string()))
 	}
 }
 

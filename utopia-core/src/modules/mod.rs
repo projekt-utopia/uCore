@@ -11,11 +11,13 @@ pub struct ModuleCore {
 }
 
 impl ModuleCore {
-	pub fn new() -> failure::Fallible<(
+	pub fn new(
+		database_connection: utopia_module::UDb,
+	) -> failure::Fallible<(
 		ModuleCore,
 		mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>,
 	)> {
-		let mut mod_mgr = modules::ModuleManager::new();
+		let mut mod_mgr = modules::ModuleManager::new(database_connection);
 		let (mod_send, mod_recv) = mpsc::unbounded::<(&'static str, module::ModuleCommands)>();
 		let futures = stream::FuturesUnordered::new();
 		unsafe {

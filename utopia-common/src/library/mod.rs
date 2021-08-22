@@ -3,6 +3,8 @@ pub mod artwork;
 pub mod credits;
 pub mod item_meta;
 
+pub mod preferences;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

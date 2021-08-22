@@ -1,0 +1,27 @@
+include {inherits}
+
+protected-mode yes
+port 0
+
+unixsocket {socket}
+unixsocketperm 700
+
+timeout 0
+
+
+daemonize no
+supervised systemd
+
+loglevel notice
+logfile {logfile}
+
+databases 1
+
+set-proc-title yes
+proc-title-template "\{title}@utopia \{unixsocket}"
+
+dbfilename utopia.rdb
+dir {working_dir}
+
+# if laptop, use 5; on desktop 10
+hz 10

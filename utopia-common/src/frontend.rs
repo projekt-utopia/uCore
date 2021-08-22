@@ -8,6 +8,11 @@ pub enum FrontendActions {
 	GetFullGameLibrary,
 	GetGameDetails(String),
 	GameMethod(library::LibraryItemProviderMethods),
+	RequestPreferenceDiag(String, library::preferences::DiagType),
+	PreferenceDiagUpdate(
+		(String, library::preferences::DiagType),
+		std::collections::HashMap<String, library::preferences::FieldType>,
+	),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -26,6 +31,10 @@ pub enum CoreActions {
 	ResponseItemDetails(library::LibraryItemDetails),
 	ResponseGameUpdate(LibraryItemFrontend),
 	//SignalGameLaunch(String),
+	PreferenceDiagResponse(
+		(String, library::preferences::DiagType),
+		library::preferences::PreferenceDiag,
+	),
 	Error(String, String),
 }
 
