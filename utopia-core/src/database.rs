@@ -1,6 +1,7 @@
 use std::{io::prelude::*,
           path::{Path, PathBuf}};
 
+use anyhow::{Context, Error, Result};
 use tokio::net::UnixDatagram;
 use tinytemplate::TinyTemplate;
 
@@ -40,7 +41,7 @@ impl std::ops::DerefMut for UtopiaDatagramSocket {
 
 use std::os::unix::io::FromRawFd;
 
-pub async fn spawn(config: &crate::UtopiaDatabaseConfig) -> failure::Fallible<(tokio::process::Child, String)> {
+pub async fn spawn(config: &crate::UtopiaDatabaseConfig) -> Result<(tokio::process::Child, String)> {
 	std::fs::create_dir_all(&config.working_dir)?;
 	let mut tt = TinyTemplate::new();
 	let mut template_conf =
@@ -85,7 +86,12 @@ pub async fn spawn(config: &crate::UtopiaDatabaseConfig) -> failure::Fallible<(t
 				continue;
 			},
 			Err(e) => {
-				return Err(failure::Error::from_boxed_compat(Box::new(e)));
+				return Err(Error::new(e)).with_context(|| {
+					format!(
+						"Occured while listening on the unix datagram socket {}",
+						&config.ready_sock.to_string_lossy()
+					)
+				});
 			}
 		}
 	}

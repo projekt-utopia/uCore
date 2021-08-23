@@ -11,7 +11,7 @@ pub struct ModuleCore {
 impl ModuleCore {
 	pub fn new(
 		database_connection: utopia_module::UDb
-	) -> failure::Fallible<(
+	) -> anyhow::Result<(
 		ModuleCore,
 		mpsc::UnboundedReceiver<(&'static str, module::ModuleCommands)>
 	)> {

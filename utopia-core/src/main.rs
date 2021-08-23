@@ -51,7 +51,7 @@ impl UtopiaConfiguration {
 }
 
 #[tokio::main]
-async fn main() -> failure::Fallible<()> {
+async fn main() -> anyhow::Result<()> {
 	let config = UtopiaConfiguration::new();
 	let (child, tmp_path) = database::spawn(&config.database).await?;
 	let database = redis::Client::open(format!("unix://{}", config.database.socket.to_string_lossy()))?;
