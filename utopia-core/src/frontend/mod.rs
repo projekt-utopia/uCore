@@ -20,7 +20,7 @@ impl Stream for SocketStream {
 	type Item = Result<frontend::FrontendEvent, Box<dyn Error>>;
 
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-		let mut buf = [0; 0xFF];
+		let mut buf = [0; 0xFFFF];
 		let mut reader = ReadBuf::new(&mut buf);
 		let stream = Pin::new(&mut self.inner);
 		match stream.poll_read(cx, &mut reader) {
