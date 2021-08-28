@@ -164,7 +164,35 @@ impl EventLoop {
 													},
 													Err(_e) => eprintln!("FE {} requested nonexistant item: {}", &uuid, guuid)
 												};
-											}
+											},
+											frontend::library::LibraryItemProviderMethods::Close(quit) => {
+												match quit {
+													frontend::library::LibraryItemProviderQuitActions::ActiveProvider(item) => {
+														if let Ok(item) = self.core.library.get(&item) {
+															result_printer_resp!(self, (item.close_default(&self.mods.mod_mgr), "Error closing item"), (msg.uuid, &uuid));
+														}
+													},
+													frontend::library::LibraryItemProviderQuitActions::OfProvider(item, provider) => {
+														if let Ok(item) = self.core.library.get(&item) {
+															result_printer_resp!(self, (item.close_provider(&self.mods.mod_mgr, provider), "Error closing item of provider"), (msg.uuid, &uuid));
+														}
+													},
+													_ => eprintln!("FE {} requested unimplemented quit method {:?}", uuid, quit),
+												}
+											},
+											frontend::library::LibraryItemProviderMethods::Kill(quit) => {
+												match quit {
+													frontend::library::LibraryItemProviderQuitActions::ActiveProvider(item) => {
+														if let Ok(item) = self.core.library.get(&item) {
+															item.kill_default();
+														}
+													},
+													frontend::library::LibraryItemProviderQuitActions::OfProvider(item, provider) => {
+														result_printer_resp!(self, (self.core.library.kill_provider(&item, provider), "Error killing item of provider"), (msg.uuid, &uuid));
+													},
+													_ => eprintln!("FE {} requested unimplemented quit method {:?}", uuid, quit),
+												}
+											},
 											_ => eprintln!("FE {} requested unimplemented method {:?}", uuid, method),
 										}
 									},

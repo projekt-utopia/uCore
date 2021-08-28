@@ -90,15 +90,24 @@ pub struct LibraryItemFrontendDetails {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum LibraryItemProviderQuitActions {
+	ActiveProvider(String),
+	// uuid of game, uuid of provider
+	OfProvider(String, String),
+	Specific(u32),
+	All
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum LibraryItemProviderMethods {
 	Launch(String),
 	// uuid of game, uuid of provider
 	LaunchViaProvider(String, String),
 	// uuid of game, uuid of provider
 	ChangeSelectedProvider(String, String),
-	Close(String),
+	Close(LibraryItemProviderQuitActions),
 	GetPid(String),
-	Kill(String),
+	Kill(LibraryItemProviderQuitActions),
 	Update(String),
 	Uninstall(String)
 }

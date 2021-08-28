@@ -84,6 +84,50 @@ impl LibraryItem {
 		}
 	}
 
+	pub fn close_default(&self, mod_mgr: &ModuleManager) -> Result<(), Box<dyn std::error::Error>> {
+		mod_mgr
+			.get(&self.active_provider.1.module)?
+			.send(CoreCommands::CloseLibraryItem(self.uuid.clone()))?;
+		Ok(())
+	}
+
+	pub fn close_provider(&self, mod_mgr: &ModuleManager, provider: String) -> Result<(), Box<dyn std::error::Error>> {
+		match self.providers.get(&provider) {
+			Some(provider) => {
+				mod_mgr
+					.get(provider.module)?
+					.send(CoreCommands::CloseLibraryItem(self.uuid.clone()))?;
+				Ok(())
+			},
+			None => Err(Box::new(ProvModuleNotAvailableError::new(provider)))
+		}
+	}
+
+	pub fn kill_default(&self) {
+		let _: Vec<()> = self.active_provider.1.status.iter().map(|status| unsafe {
+			if let library::LibraryItemStatus::Running(pid) = status {
+				if let Some(pid) = pid {
+					libc::kill(*pid as i32, libc::SIGKILL);
+				}
+			}
+		}).collect();
+	}
+	pub fn kill_provider(&self, provider: String) -> Result<(), ProvModuleNotAvailableError> {
+		match self.providers.get(&provider) {
+			Some(provider) => {
+				let _: Vec<()> = provider.status.iter().map(|status| unsafe {
+					if let library::LibraryItemStatus::Running(pid) = status {
+						if let Some(pid) = pid {
+							libc::kill(*pid as i32, libc::SIGKILL);
+						}
+					}
+				}).collect();
+				Ok(())
+			},
+			None => Err(ProvModuleNotAvailableError::new(provider))
+		}
+	}
+
 	pub fn change_default_provider(&mut self, provider: String) -> Result<(), ProvModuleNotAvailableError> {
 		let title = self
 			.providers
@@ -249,6 +293,11 @@ impl Library {
 		provider: String
 	) -> Result<(), Box<dyn std::error::Error>> {
 		self.get(uuid)?.run_provider(mod_mgr, provider)?;
+		Ok(())
+	}
+
+	pub fn kill_provider(&self, uuid: &String, provider: String) -> Result<(), Box<dyn std::error::Error>> {
+		self.get(uuid)?.kill_provider(provider)?;
 		Ok(())
 	}
 

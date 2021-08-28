@@ -16,6 +16,7 @@ pub enum LibraryItemStatusSignals {
 pub enum CoreCommands {
 	Reload,
 	LaunchLibraryItem(String),
+	CloseLibraryItem(String),
 	RequestPreferenceDiag(library::preferences::DiagType),
 	PreferenceDiagUpdate(
 		library::preferences::DiagType,
